@@ -19,4 +19,4 @@ const sendEmail=async(options)=>{
 
 }
 
-module.exports=sendEmail
+module.exports = sendEmail

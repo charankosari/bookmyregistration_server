@@ -2,6 +2,7 @@ const express=require("express")
 const app=express()
 const product=require("./routes/productsRouter")
 const user=require("./routes/userRouter")
+const hospital=require("./routes/hospitalRoutes")
 const order=require("./routes/orderRouter")
 const errorMiddleware=require("./middleware/error")
 const cookieParser=require("cookie-parser")
@@ -24,7 +25,8 @@ app.use(express.json())
 // product route
 app.use("/api/v1",product)
 // user route
-app.use("/api/v1",user)
+app.use("/api/bma",user)
+app.use("/api/bma/hospital",hospital)
 // order route
 app.use("/api/v1",order)
 // errorHandler Middleware

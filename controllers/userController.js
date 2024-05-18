@@ -1,30 +1,17 @@
 const asyncHandler = require("../middleware/asynchandler");
 const errorHandler = require("../utils/errorHandler");
 const User = require("../models/userModel");
-const Product=require("../models/productModels")
+const Doctor=require("../models/DoctorsModel")
 const sendJwt = require("../utils/jwttokenSend");
 const sendEmail=require("../utils/sendEmail")
 const crypto=require("crypto")
-const cloudinary=require("../utils/cloudinary")
 const fs=require("fs");
-const { whitelist } = require("validator");
-const { execPath } = require("process");
-
 
 
 // user register
 exports.register = asyncHandler(async (req, res, next) => {  
-  const { name, email, password, number,address} = req.body;  
-  console.log(address)
-  // checking if file present in request
-  // if(req.file==undefined){
-  //   return next(new errorHandler("provide avatar", 401));~
-  //   }
-  // uploading into cloudinary
-  // const uploaded=await cloudinary(req.file)
-  // const avatar={public_id:uploaded.public_id,url:uploaded.url}
-
-  const avatar=""
+  const { name, email, password, number} = req.body;  
+ 
   // checking user existance
   let user = await User.findOne({ email });
   if (user) {
@@ -34,34 +21,29 @@ exports.register = asyncHandler(async (req, res, next) => {
     name,
     email,
     password,
-    avatar,
     number,
-    address
   });
   //sending response
   sendJwt(user, 201,"registerd successfully", res);  
 });
 
 //user login
-exports.login = asyncHandler(async (req,res,next) => {
-
-  const { email, password } = req.body;
-
-  if (email == "" || password == "") {
-    return next(new errorHandler("Enter Email and Password", 403));
+exports.login = asyncHandler(async (req, res, next) => {
+  const { email, number, password } = req.body;
+  if ((email === "" && number === "") || password === "") {
+    return next(new errorHandler("Enter Email/Number and Password", 403));
   }
-  const user = await User.findOne({ email }).select("+password");
+  const user = await User.findOne({
+    $or: [{ email }, { number }]
+  }).select("+password");
   if (!user) {
-    return next(new errorHandler("Invalid Email or Password", 403));
+    return next(new errorHandler("Invalid Email/Number or Password", 403));
   }
-  //conparing password
   const passwordMatch = await user.comparePassword(password);
-
   if (!passwordMatch) {
-    return next(new errorHandler("Invalid Email or Password", 403));
+    return next(new errorHandler("Invalid Email/Number or Password", 403));
   }
-  //sending response
-  sendJwt(user, 200,"login successfully", res);
+  sendJwt(user, 200, "Login successful", res);
 });
 
 // forgot password
@@ -71,10 +53,8 @@ exports.forgotPassword=asyncHandler(async(req,res,next)=>{
   if(!user){
     next(new errorHandler("user dosent exit",401))
   }
- 
   const token=user.resetToken()
-  // const resetUrl=`http://localhost:5080/api/v1/resetpassword/${token}`
-  const resetUrl=`http://127.0.0.1:5173/resetpassword/${token}`
+  const resetUrl=`http://localhost:5173/resetpassword/${token}`
   const message=`your reset url is ${resetUrl} leave it if you didnt requested for it`
   await user.save({validateBeforeSave:false})
   try{
@@ -84,7 +64,6 @@ exports.forgotPassword=asyncHandler(async(req,res,next)=>{
     message:message
    })
    res.status(201).json({success:true,message:"mail sent successfully",mailMessage:mailMessage})
-
   }
   catch(e){
     user.resetPasswordExpire=undefined;
@@ -93,7 +72,6 @@ exports.forgotPassword=asyncHandler(async(req,res,next)=>{
     next(new errorHandler(e.message,401))
   }
 })
-
 // reset password
 exports.resetPassword=asyncHandler(async(req,res,next)=>{
   const token=req.params.id
@@ -102,9 +80,6 @@ exports.resetPassword=asyncHandler(async(req,res,next)=>{
   if(!user){
     return next(new errorHandler("Reset password is invalid or expired",400))
   }
-  if(req.body.password!=req.body.confirmPassword){
-    return next(new errorHandler("Password dosnt match",401))
-  }
   user.password=req.body.password
   user.resetPasswordExpire=undefined
   user.resetPasswordToken=undefined
@@ -112,25 +87,13 @@ exports.resetPassword=asyncHandler(async(req,res,next)=>{
   sendJwt(user,201,"reset password successfully",res)
 })
 
-// user logout
-exports.logout = asyncHandler(async (req, res, next) => {
-  res.cookie("jwtToken", null, {
-    httpOnly:true,
-    expires: new Date(Date.now()),
-  });
-  res.status(200).json({ success: true, message: "logout successfully" });
-});
-
 // update password
 exports.updatePassword=asyncHandler(async(req,res,next)=>{
-  const {password,confirmPassword,oldPassword}=req.body
+  const {password,oldPassword}=req.body
   const user=await User.findById(req.user.id).select("+password")
   const passwordCheck=await user.comparePassword(oldPassword)
   if(!passwordCheck){
     return next(new errorHandler("Wrong password",400))
-  }
-  if(password!=confirmPassword){
-    return next(new errorHandler("password dosent match",400))
   }
   user.password=password;
   await user.save()
@@ -147,35 +110,20 @@ exports.userDetails=asyncHandler(async(req,res,next)=>{
   res.status(200).send({success:true,user})
 })
 
-
-
+//profile update
 exports.profileUpdate = asyncHandler(async (req, res, next) => {
-  const { name, email, number, address } = req.body;
-
+  const { name, email, number } = req.body;
   const user = await User.findById(req.user.id);
-
-  if (!name && !email && !number) {
-    // Only update the address if name, email, and number are not provided
-    if (address) {
-      user.addresses.push(address);
-      await user.save();
-      res.status(201).json({ success: true, user });
-    } else {
-      res.status(400).json({ success: false, message: "Address is required." });
-    }
-  } else {
-    // Update name, email, and number along with the address
-    user.name = name || user.name;
-    user.email = email || user.email;
-    user.number = number || user.number;
-    if (address) {
-      user.addresses.push(address);
-    }
+  user.name = name || user.name;
+  user.email = email || user.email;
+  user.number = number || user.number;
+  try {
     await user.save();
-    res.status(201).json({ success: true, user });
+    res.status(200).json({ success: true, user });
+  } catch (err) {
+    return next(new errorHandler("Failed to update profile.", 500));
   }
 });
-
 
 
 
@@ -217,63 +165,50 @@ exports.deleteUser=asyncHandler(async(req,res,next)=>{
   res.status(200).json({success:true,message:"user deleted successfully"})
 })
 
-// whishlist products________________________________________________________________________
-exports.wishListProduct=asyncHandler(async(req,res,next)=>{
-  console.log("wishlll")
-  const productId=req.params.id
-  const userId=req.user.id
-  let user=await User.findById(userId)
-  const wishList=user.wishList 
-  console.log(wishList)
-  const itemExist=wishList.find((each)=>each.product==productId)
-
-  if(itemExist){
-  const newWishlist=wishList.filter((each)=>each.product!=productId)
-  user.wishList=newWishlist 
-  await user.save({validateBeforeSave:false})
-  return res.status(200).json({success:true,message:"Product removed from Wishlist successfully"})
-    // return next(new errorHandler(`Product with ${productId} already wishlisted`),400) 
+//add and remove whishlist doctor________________________________________________________________________
+exports.wishListDoctor = asyncHandler(async (req, res, next) => {
+  const DoctorId = req.params.id;
+  const userId = req.user.id;
+  const user = await User.findById(userId);
+  if (!user) {
+    return res.status(404).json({ success: false, message: "User not found" });
   }
-  wishList.push({"product":productId})
-  console.log(wishList)
-  user.wishList=wishList
-  await user.save({validateBeforeSave:false})
-  return res.status(200).json({success:true,message:"Product wishlisted successfully"})
-})
+  let wishList = user.wishList || [];
+  const itemExist = wishList.find((item) => item.Doctor.toString() === DoctorId);
+  if (itemExist) {
+    wishList = wishList.filter((item) => item.Doctor.toString() !== DoctorId);
+    user.wishList = wishList;
+    await user.save({ validateBeforeSave: false });
+    return res
+      .status(200)
+      .json({ success: true, message: "Doctor removed from Wishlist successfully" });
+  }
+  wishList.push({ Doctor: DoctorId });
+  user.wishList = wishList;
+  await user.save({ validateBeforeSave: false });
+  return res.status(200).json({ success: true, message: "Doctor wishlisted successfully" });
+});
 
-// remove product form wishlist______________________________________________________________
-exports.RemovewishListProduct=asyncHandler(async(req,res,next)=>{
-  const productId=req.params.id
-  console.log(productId)
-  const userId=req.user.id
-  let user=await User.findById(userId)
-  const wishList=user.wishList 
-  const newWishlist=wishList.filter((each)=>each.product!=productId)
-  user.wishList=newWishlist 
-  await user.save({validateBeforeSave:false})
-  res.status(200).json({success:true,message:"Product remover from Wishlist successfully"})
-})
+
+
 
 // get all Wishlist details__________________
-exports.getWishlist=asyncHandler(async(req,res,next)=>{
-  const userId=req.user.id
-  const user=await User.findOne({_id:userId},{wishList:1,_id:0});
-  console.log("wishlistData")
-  console.log(user)
+exports.getWishlist = asyncHandler(async (req, res, next) => {
+  const userId = req.user.id;
+  const user = await User.findById(userId).select('wishList').lean();
+  if (!user) {
+    return res.status(404).json({ success: false, message: "User not found" });
+  }
+  const doctorIds = user.wishList.map(item => item.Doctor);
+  
+  // Find doctors with specific fields
+  const wishlistData = await Doctor.find({ _id: { $in: doctorIds } })
+    .select('name experience study specialist hospitalid')
+    .lean();
 
-  const wishlistData = await Promise.all(
-    user.wishList.map(async(eachItem)=>{
-      console.log(eachItem)
-      const product = await Product.findOne({_id:eachItem.product},{name:1,images:1,price:1,stock:1})
-      // console.log(product)
-      const item = {name:product.name,images:product.images,price:product.price,id:product.id,stock:product.stock}
-      // console.log(item)
-      return item
-    })
-  )
+  res.status(200).json({ message: "Wishlist Data", success: true, data: wishlistData });
+});
 
-res.status(200).json({message:"wishlistData",success:true,data:wishlistData})
-})
 
 // empty the wishlist_______________________________________
 exports.deleteWishlist=asyncHandler(async(req,res,next)=>{
@@ -284,87 +219,4 @@ exports.deleteWishlist=asyncHandler(async(req,res,next)=>{
   res.status(200).json({success:true,message:"Wishlist is empty successfully"})
 })
 
-// add item to cart increase quantity if already present_____________________________________
-exports.AddCartItem=asyncHandler(async(req,res,next)=>{
-  const userId=req.user.id
-  const productId=req.params.id 
-  const quantity=req.body.quantity
-  const user=await User.findById(userId)
-  const product=await Product.findById(productId)
- 
-  let cartDetails={
-    "product":productId,
-    quantity:quantity
-    }
 
-  const isCarted=user.cart.findIndex((each)=>each.product==productId)
-  if(isCarted!=-1){
-  user.cart[isCarted].quantity+=1
-  }
-  else{
-  user.cart.push(cartDetails) 
-  }
-  await user.save({validateBeforeSave:false})
- res.json({success:true,message:"product added to cart successfully"})
-})
-// remove item from cart _____________________________________
-exports.RemoveCartItem=asyncHandler(async(req,res,next)=>{
-  const userId=req.user.id
-  const {id}=req.params 
-  console.log(id)
-  const user=await User.findById(userId)
-  const newCart=user.cart.filter((each)=>each.product!=id)         
-  user.cart=newCart[0] 
-  await user.save({validateBeforeSave:false})
- res.status(200).json({success:true,message:"item is removed form cart successfully"})
-})
-
-// get all cart details__________________
-exports.getCartDetails=asyncHandler(async(req,res,next)=>{
-  const userId=req.user.id
-  const user=await User.findOne({_id:userId},{cart:1});
-  const cartData = await Promise.all(
-    user.cart.map(async(cartItem)=>{
-      const product = await Product.findOne({_id:cartItem.product},{name:1,images:1,price:1})
-      product.quantity=cartItem.quantity
-      const item = {name:product.name,images:product.images,price:product.price,quantity:cartItem.quantity,id:product.id}
-      return item
-    })
-  )
-
-res.status(200).json({success:true,data:cartData})
-})
-
-// increment cart item quantity________________________________
-exports.updateCartItem=asyncHandler(async(req,res,next)=>{
-  const userId=req.user.id
-  const {id}=req.params
-  const {operation}=req.body
-  console.log(id,operation)
-  console.log(operation)
-  const user=await User.findById(userId)
-
-  const isCarted=user.cart.findIndex((each)=>each.product==id)
-  console.log(isCarted,"iscarted")
-  if(operation=="inc"){
-  user.cart[isCarted].quantity+=1
-  }
-  else{
-  if(user.cart[isCarted].quantity<=0)
-  user.cart[isCarted].quantity=0
-  else
-  user.cart[isCarted].quantity-=1
-  }
-  await user.save({validateBeforeSave:false})
-  res.status(200).json({success:true,message:"cart item quantity updated successfully"})
-
-})
-
-// empty the cart________________________________
-exports.deleteCart=asyncHandler(async(req,res,next)=>{
-  const userId=req.user.id
-  const user=await User.findById(userId)
-  user.cart=[]
-  user.save({validateBeforeSave:false})
-  res.status(200).json({success:true,message:"cart is empty successfully"})
-})

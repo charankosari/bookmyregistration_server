@@ -35,74 +35,22 @@ const userSchema = new mongoose.Schema({
     minlength: [8,"password should be greaterthan 8 characters"],
     select: false,
   },
-  avatar:{
-    public_id: {
-      type: String,
-      // required: true,
-    },
-    url: {
-      type: String,
-      // required: true,
-    },
-  },
   wishList:[
     {
-      product:{
+      Doctor:{
         type:mongoose.Schema.ObjectId,
-        ref:"Product"
+        ref:"Doctors"
       }
     }
   ],
-
-  cart: [
+  bookings:[
     {
-      product: {
-        type: mongoose.Schema.ObjectId,
-        ref: "Product",
-      },
-      quantity: {
-        type: Number,
-        default: 1,
-      },
-    },
+      doctorid:{
+        type:mongoose.Schema.ObjectId,
+        ref:"Bookings"
+      }
+    }
   ],
-  addresses:[
-{
-  name:{
-    type:String,
-    required:true
-  },
-  email:{
-    type:String,
-    required:true
-  },
-  address:{
-    type:String,
-    required:true
-  },
-  country:{
-    type:String,
-    required:true
-},
-state:{
-    type:String,
-    required:true
-},
-city:{
-    type:String,
-    required:true
-},
-pin:{
-    type:Number,
-    required:true
-},
-mobile:{
-    type:Number,
-    required:true
-}
-}
-  ],
-  
   role:{
     type: String,
     default:"user",
