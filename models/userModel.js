@@ -45,7 +45,7 @@ const userSchema = new mongoose.Schema({
   ],
   bookings:[
     {
-      doctorid:{
+      bookingid:{
         type:mongoose.Schema.ObjectId,
         ref:"Bookings"
       }

@@ -2,7 +2,8 @@ const asyncHandler = require("../middleware/asynchandler");
 const errorHandler = require("../utils/errorHandler");
 const Hospital = require("../models/HospitalsModel");
 const Doctor = require("../models/DoctorsModel");
-const Product=require("../models/productModels")
+const Booking=require("../models/BookingModel")
+const User=require("../models/userModel")
 const sendJwt = require("../utils/jwttokenSend");
 const sendEmail=require("../utils/sendEmail")
 const crypto=require("crypto")
@@ -109,9 +110,7 @@ exports.updatePassword=asyncHandler(async(req,res,next)=>{
   await hosp.save()
   sendJwt(hosp,201,"password updated successfully",res)
 
-})
-
-//random words generator________________
+})// Random words generator
 function getRandomLetters(name, count) {
   const letters = name.replace(/[^a-zA-Z]/g, '');
   let result = '';
@@ -128,18 +127,40 @@ function getRandomLetters(name, count) {
   return result.toUpperCase();
 }
 
-//add doctor_____________________________________________________________-
-exports.addDoctor = async (req, res, next) => {
+function generateTimeSlots(timings, slotDuration) {
+  if (!timings.length) return [];
+
+  const slots = [];
+
+  timings.forEach(session => {
+    let startTime = new Date(`1970-01-01T${session.startTime}:00Z`);
+    const endTime = new Date(`1970-01-01T${session.endTime}:00Z`);
+
+    while (startTime < endTime) {
+      const timeStr = startTime.toISOString().substring(11, 16); // Format as HH:MM
+      slots.push({ time: timeStr, bookingId: null });
+      startTime.setMinutes(startTime.getMinutes() + slotDuration);
+    }
+  });
+
+  return slots;
+}
+
+// Add doctor
+exports.addDoctor = asyncHandler(async (req, res, next) => {
   try {
-    const { name, experience, study, specialist, timings } = req.body;
-    const hospitalid=await Hospital.findById(req.hosp.id)
+    const { name, experience, study, specialist, timings, slotTimings, noOfDays } = req.body;
+    const hospitalid = req.hosp.id;
     const hospital = await Hospital.findById(hospitalid);
+
     if (!hospital) {
       return res.status(404).json({ message: "Hospital not found" });
     }
+
     const hospitalCode = hospital.hospitalName.slice(0, 2).toUpperCase();
     const doctorCodePart = getRandomLetters(name, 4);
     const doctorCode = hospitalCode + doctorCodePart;
+
     const doctor = new Doctor({
       name,
       experience,
@@ -147,20 +168,32 @@ exports.addDoctor = async (req, res, next) => {
       specialist,
       hospitalid,
       timings,
+      slotTimings,
+      noOfDays,
       code: doctorCode
     });
-    // Save the doctor to the database
+
+    const startDate = new Date();
+    for (let i = 0; i < noOfDays; i++) {
+      const currentDate = new Date(startDate);
+      currentDate.setDate(startDate.getDate() + i);
+      const dateStr = currentDate.toISOString().split('T')[0];
+
+      const morningSlots = generateTimeSlots(timings.morning, slotTimings);
+      const eveningSlots = generateTimeSlots(timings.evening, slotTimings);
+
+      doctor.bookingsids.set(dateStr, { morning: morningSlots, evening: eveningSlots });
+    }
+
     const savedDoctor = await doctor.save();
-    // Add the doctor to the hospital's doctor list
     hospital.doctors.push({ doctorid: savedDoctor._id });
     await hospital.save();
+
     res.status(201).json(savedDoctor);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
-};
-
-
+});
 ///deleting a doctor
 exports.deleteDoctorById = asyncHandler(async (req, res, next) => {
   const doctorId = req.params.id;
@@ -179,44 +212,6 @@ exports.deleteDoctorById = asyncHandler(async (req, res, next) => {
 });
 
 
-
-//add session
-exports.addSession = async (req, res, next) => {
-  try {
-    const { hospitalName, doctorName, userName, time,date, amountPaid, sessionType, mode, number } = req.body;
-    
-    const hospital = await Hospital.findOne({ hospitalName });
-    if (!hospital) {
-      return res.status(404).json({ error: 'Hospital not found' });
-    }
-   
-
-    const newSession = {
-      username: userName,
-      doctorName,
-      time,
-      hospitalName,
-      date,
-      amountPaid,
-      sessionType,
-      mode,
-      number
-    };
-
-    if (sessionType === 'morning') {
-      await hospital.pushToMorning(newSession);
-    } else if (sessionType === 'evening') {
-      await hospital.pushToEvening(newSession);
-    } else {
-      return res.status(400).json({ error: 'Invalid session type' });
-    }
-
-    return res.status(201).json({ message: 'Session added successfully', session: newSession });
-  }  catch (error) {
-    console.error('Error occurred while adding session:', error);
-    return res.status(500).json({ error: 'An error occurred while adding session', error: error.message });
-  }
-};
 
 
 // my details
@@ -278,3 +273,107 @@ exports.getUser=asyncHandler(async(req,res,next)=>{
 })
 
 
+//add more sessions_____________________
+
+
+const generateTimeSlotss = (startTime, endTime, slotDuration) => {
+  const slots = [];
+  let current = new Date(`1970-01-01T${startTime}:00Z`);
+  const end = new Date(`1970-01-01T${endTime}:00Z`);
+
+  while (current < end) {
+    slots.push({ time: current.toISOString().substr(11, 5), bookingId: null });
+    current.setMinutes(current.getMinutes() + slotDuration);
+  }
+
+  return slots;
+};
+
+
+exports.addMoreSessions = async (req, res, next) => {
+  try {
+    const { doctorId,date, noOfDays, slotTimings, morning, evening } = req.body;
+    
+
+    const doctor = await Doctor.findById(doctorId);
+
+    if (!doctor) {
+      return res.status(404).json({ message: 'Doctor not found' });
+    }
+
+    const startDate = new Date(date);
+    for (let i = 0; i < noOfDays; i++) {
+      const currentDate = new Date(startDate);
+      currentDate.setDate(startDate.getDate() + i);
+      const dateStr = currentDate.toISOString().split('T')[0];
+
+      const morningSlots = generateTimeSlotss(morning.startTime, morning.endTime, slotTimings);
+      const eveningSlots = generateTimeSlotss(evening.startTime, evening.endTime, slotTimings);
+
+      if (!doctor.bookingsids.has(dateStr)) {
+        doctor.bookingsids.set(dateStr, { morning: [], evening: [] });
+      }
+
+      const daySchedule = doctor.bookingsids.get(dateStr);
+
+      morningSlots.forEach(slot => {
+        if (!daySchedule.morning.some(existingSlot => existingSlot.time === slot.time)) {
+          daySchedule.morning.push(slot);
+        }
+      });
+
+      eveningSlots.forEach(slot => {
+        if (!daySchedule.evening.some(existingSlot => existingSlot.time === slot.time)) {
+          daySchedule.evening.push(slot);
+        }
+      });
+    }
+
+    await doctor.save();
+
+    res.status(201).json({ message: 'Sessions added successfully', doctor });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+
+//doctor controller for getting booking details
+exports.getUserDetailsByBookingId = asyncHandler(async (req, res, next) => {
+  try {
+    const { bookingId } = req.params;
+    const booking = await Booking.findById(bookingId);
+    const user = await User.findById(booking.userid);
+    if (!booking) {
+      return res.status(404).json({ message: 'Booking not found' });
+    }
+    console.log(booking);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    const bookingDetails = {
+      booking: {
+        _id: booking._id,
+        name: booking.name,
+        phonenumber: booking.phonenumber,
+        email: booking.email,
+        amountpaid: booking.amountpaid,
+        date: booking.date,
+        session: booking.session,
+        time: booking.time,
+      },
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        number: user.number,
+      },
+    };
+
+    res.status(200).json(bookingDetails);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});

@@ -1,55 +1,95 @@
-
 const mongoose = require("mongoose");
 const validator = require("validator");
 
 const SessionSchema = new mongoose.Schema({
-    startTime: {
-        type: String,
-    },
-    endTime: {
-        type: String,
-    }
-  });
-  const DoctorSchema = new mongoose.Schema({
-    name: {
-        type: String,
-    },
-    experience: {
-        type: Number,
-    },
-    study: {
-        type: String,
-    },
-    specialist: {
-        type: String,
-    },
-    code:{
-        type:String,
-        unique: true,
-        minlength: [6, "Code should be exactly 6 characters"],
-        maxlength: [6, "Code should be exactly 6 characters"]
-    },
-    timings: {
-      morning: {
-        type: [SessionSchema],
-      },
-      evening: {
-        type: [SessionSchema],
-      }
-    },
-    hospitalid:
-      {
-          type:mongoose.Schema.ObjectId,
-          ref:"Hospital id",
-          required: true
-      },
-    bookingsids: 
-      {
-          type: [{
-            type: mongoose.Schema.ObjectId,
-            ref: "Hospital"
-          }]
-      }
-  });
+  startTime: {
+    type: String,
+    required: true
+  },
+  endTime: {
+    type: String,
+    required: true
+  }
+});
 
-module.exports = mongoose.model("Doctors", DoctorSchema);
+const SlotSchema = new mongoose.Schema({
+  time: {
+    type: String,
+  },
+  bookingId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Booking",
+    default: null
+  }
+});
+
+const BookingSchema = new mongoose.Schema({
+  morning: {
+    type: [SlotSchema],
+    validate: [arrayLimit, 'Exceeds the limit of 20 bookings for morning']
+  },
+  evening: {
+    type: [SlotSchema],
+    validate: [arrayLimit, 'Exceeds the limit of 20 bookings for evening']
+  }
+}, { _id: false });
+
+function arrayLimit(val) {
+  return val.length <= 20;
+}
+
+const DoctorSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true
+  },
+  experience: {
+    type: Number,
+    required: true
+  },
+  study: {
+    type: String,
+    required: true
+  },
+  specialist: {
+    type: String,
+    required: true
+  },
+  code: {
+    type: String,
+    unique: true,
+    minlength: [6, "Code should be exactly 6 characters"],
+    maxlength: [6, "Code should be exactly 6 characters"]
+  },
+  timings: {
+    morning: {
+      type: [SessionSchema],
+      required: true
+    },
+    evening: {
+      type: [SessionSchema],
+      required: true
+    }
+  },
+  slotTimings: {
+    type: Number,
+    required: true
+  },
+  noOfDays: {
+    type: Number,
+    required: true
+  },
+  hospitalid: {
+    type: mongoose.Schema.ObjectId,
+    ref: "Hospital",
+    required: true
+  },
+  bookingsids: {
+    type: Map,
+    of: BookingSchema,
+    default: {}
+  }
+});
+
+
+module.exports = mongoose.model("Doctor", DoctorSchema);

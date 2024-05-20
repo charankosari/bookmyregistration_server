@@ -2,6 +2,8 @@ const asyncHandler = require("../middleware/asynchandler");
 const errorHandler = require("../utils/errorHandler");
 const User = require("../models/userModel");
 const Doctor=require("../models/DoctorsModel")
+const Hospital =require("../models/HospitalsModel")
+const Booking = require("../models/BookingModel")
 const sendJwt = require("../utils/jwttokenSend");
 const sendEmail=require("../utils/sendEmail")
 const crypto=require("crypto")
@@ -218,5 +220,128 @@ exports.deleteWishlist=asyncHandler(async(req,res,next)=>{
   user.save({validateBeforeSave:false})
   res.status(200).json({success:true,message:"Wishlist is empty successfully"})
 })
+const findAvailableSlot = async (doctorId, date, session, time) => {
+  const doctor = await Doctor.findById(doctorId);
+
+  if (!doctor) {
+    throw new Error('Doctor not found');
+  }
+
+  const dateString = date.toISOString().split('T')[0];
+  const slots = doctor.bookingsids.get(dateString)[session];
+
+  // Find the next available slot if the requested slot is not free
+  const slotIndex = slots.findIndex(slot => slot.time === time);
+  for (let i = slotIndex; i < slots.length; i++) {
+    if (slots[i].bookingId === null) {
+      return slots[i];
+    }
+  }
+
+  return null;
+};
+
+// Controller function to handle booking
+exports.bookAppointment = asyncHandler(async (req, res, next) => {
+  try {
+    const { doctorId, hospitalId, date, session, time, name, phonenumber, email, amountpaid } = req.body;
+    const userId = req.user.id;
+
+    const doctor = await Doctor.findById(doctorId);
+    if (!doctor) {
+      return res.status(404).json({ message: 'Doctor not found' });
+    }
+
+    const booking = new Booking({
+      name,
+      userid: userId,
+      phonenumber,
+      email,
+      amountpaid,
+      doctorid: doctorId,
+      hospitalid: hospitalId,
+      date: new Date(date),
+      session,
+      time
+    });
+
+    console.log('New Booking:', booking);
+
+    const availableSlot = await findAvailableSlot(doctorId, new Date(date), session, time);
+
+    console.log('Available Slot:', availableSlot);
+
+    if (!availableSlot) {
+      return res.status(400).json({ message: 'All slots are booked' });
+    }
+
+    booking.time = availableSlot.time; // Update booking time with the available slot
+
+    await booking.save();
+
+    const dateString = new Date(date).toISOString().split('T')[0];
+    const doctorSlot = doctor.bookingsids.get(dateString)[session].find(slot => slot.time === booking.time);
+    doctorSlot.bookingId = booking._id;
+
+    await doctor.save();
+    const user = await User.findById(userId);
+    user.bookings.push({ bookingid: booking._id });
+    await user.save();
+    res.status(201).json({ message: 'Booking successful', booking });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
 
 
+//user controller for getting booking details
+
+exports.getBookingDetails = asyncHandler(async (req, res, next) => {
+  try {
+    const { bookingId } = req.params;
+    const booking = await Booking.findById(bookingId);
+    if (!booking) {
+      return res.status(404).json({ message: 'Booking not found' });
+    }
+    const doctor = await Doctor.findById(booking.doctorid);
+    const hospital = await Hospital.findById(booking.hospitalid);
+    if (!doctor) {
+      return res.status(404).json({ message: 'Doctor not found' });
+    }
+    if (!hospital) {
+      return res.status(404).json({ message: 'Hospital not found' });
+    }
+    const bookingDetails = {
+      booking: {
+        _id: booking._id,
+        name: booking.name,
+        userid: booking.userid,
+        phonenumber: booking.phonenumber,
+        email: booking.email,
+        amountpaid: booking.amountpaid,
+        date: booking.date,
+        session: booking.session,
+        time: booking.time,
+      },
+      doctor: {
+        _id: doctor._id,
+        name: doctor.name,
+        experience: doctor.experience,
+        study: doctor.study,
+        specialist: doctor.specialist,
+      },
+      hospital: {
+        _id: hospital._id,
+        hospitalName: hospital.hospitalName,
+        location: hospital.address,
+        contact: hospital.number,
+      },
+    };
+
+    res.status(200).json(bookingDetails);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});

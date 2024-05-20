@@ -3,6 +3,7 @@ const User =require("../models/userModel")
 const errorHandler=require("../utils/errorHandler")
 const asyncHandler=require("../middleware/asynchandler");
 const Hospital = require("../models/HospitalsModel");
+const Doctors = require("../models/DoctorsModel");
 
 exports.isAuthorized = asyncHandler(async(req, res, next) => {
     const headers = req.headers['authorization'];
@@ -52,7 +53,7 @@ exports.isAuthorized = asyncHandler(async(req, res, next) => {
       return next(new errorHandler("Invalid or expired token", 401));
     }
   });
-  
+ 
 exports.roleAuthorize=(...role)=>{
     return (req,res,next)=>{
         const user=req.user.role
