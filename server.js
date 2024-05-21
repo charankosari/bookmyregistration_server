@@ -32,6 +32,7 @@ exports.instance = new Razorpay({ key_id:process.env.RAZORPAY_ID,key_secret:proc
 connectDatabase();
 
 // app listening at port
+
 const server = app.listen(process.env.PORT, () =>
   console.log(`app is running at port ${process.env.PORT}`)
 );
