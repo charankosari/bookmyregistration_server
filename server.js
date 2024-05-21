@@ -2,7 +2,7 @@ const app = require("./app");
 const { config } = require("dotenv");
 const connectDatabase = require("./config/database");
 const Razorpay=require("razorpay")
-const cloudinary=require('cloudinary')
+// const cloudinary=require('cloudinary')
 
 
 // handling uncaught error
@@ -17,11 +17,11 @@ process.on("uncaughtException", (err) => {
 config({ path: "config/config.env" });
 
           
-cloudinary.config({ 
-  cloud_name: process.env.cloud_name, 
-  api_key:process.env.cloud_api_key, 
-  api_secret:process.env.cloud_api_secret 
-});
+// cloudinary.config({ 
+//   cloud_name: process.env.cloud_name, 
+//   api_key:process.env.cloud_api_key, 
+//   api_secret:process.env.cloud_api_secret 
+// });
 
 
 // initiating razorpay instance

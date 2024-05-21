@@ -1,12 +1,13 @@
 const express=require('express')
 const router=express.Router()
-const {register, login,forgotPassword,resetPassword,bookAppointment,getBookingDetails,updatePassword,userDetails,profileUpdate, getAllUsers,getUser,updateUserRole,deleteUser,getWishlist,wishListDoctor,RemovewishListProduct,AddCartItem,RemoveCartItem,getCartDetails,updateCartItem,deleteCart,deleteWishlist} =require("../controllers/userController")
+const {register,sendOtp,verifyOtp, verifyRegisterOtp,forgotPassword,resetPassword,bookAppointment,getBookingDetails,updatePassword,userDetails,profileUpdate, getAllUsers,getUser,updateUserRole,deleteUser,getWishlist,wishListDoctor,RemovewishListProduct,AddCartItem,RemoveCartItem,getCartDetails,updateCartItem,deleteCart,deleteWishlist} =require("../controllers/userController")
 const {isAuthorized,roleAuthorize,}=require("../middleware/auth")
-const upload=require('../middleware/multer')
 
 
 router.route("/register").post(register)
-router.route("/login").post(login)
+router.route("/verifyregisterotp").post(verifyRegisterOtp)
+router.route("/login").post(sendOtp)
+router.post('/verifyotp', verifyOtp);
 router.route("/forgotpassword").post(forgotPassword)
 router.route("/resetpassword/:id").post(resetPassword)
 router.route("/me").get(isAuthorized,userDetails)

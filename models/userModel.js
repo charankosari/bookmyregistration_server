@@ -29,12 +29,7 @@ const userSchema = new mongoose.Schema({
     },
     required:true,
   },
-  password:{
-    type: String,
-    required: [true, "Please Enter User Password"],
-    minlength: [8,"password should be greaterthan 8 characters"],
-    select: false,
-  },
+
   wishList:[
     {
       Doctor:{

@@ -2,7 +2,6 @@ const express=require('express')
 const router=express.Router()
 const {register, login,forgotPassword,resetPassword,getUserDetailsByBookingId,addMoreSessions,addDoctor,updatePassword,getSingleDoctorByCode,HospitalDetails,profileUpdate, getAllHospitals,getAllDoctors, deleteDoctorById,} =require("../controllers/hospitalController")
 const {isAuthorized,roleAuthorize, isAuthorizedHosp,}=require("../middleware/auth")
-const upload=require('../middleware/multer')
 
 router.route('/')
   .get((req, res) => {

@@ -5,48 +5,142 @@ const Doctor=require("../models/DoctorsModel")
 const Hospital =require("../models/HospitalsModel")
 const Booking = require("../models/BookingModel")
 const sendJwt = require("../utils/jwttokenSend");
+const bcrypt = require("bcrypt")
+const saltRounds = 10;
+const axios =require("axios");
 const sendEmail=require("../utils/sendEmail")
+const { config } = require("dotenv");
 const crypto=require("crypto")
 const fs=require("fs");
+const otpStore = new Map();
 
-
-// user register
-exports.register = asyncHandler(async (req, res, next) => {  
-  const { name, email, password, number} = req.body;  
- 
-  // checking user existance
-  let user = await User.findOne({ email });
-  if (user) {
-    return next(new errorHandler("user already exist", 401));
+config({ path: "config/config.env" });
+// user register___________________________
+exports.register = asyncHandler(async (req, res, next) => {
+  const generateOtp = () => Math.floor(1000 + Math.random() * 9000);
+  try {
+    const { name, email, number } = req.body;
+    let user = await User.findOne({ email });
+    if (user) {
+      return next(new errorHandler("User already exists", 401));
+    }
+    const otp = generateOtp();
+    const ttl = 10 * 60 * 1000; // OTP valid for 10 minutes
+    otpStore.set(number, { otp, name, email });
+    console.log(`Stored OTP for number ${number}: ${otp}`);
+    setTimeout(() => {
+      otpStore.delete(number);
+      console.log(`Deleted OTP for number ${number} after ${ttl} ms`);
+    }, ttl);
+    const url = `${process.env.RENFLAIR_URL}?API=${process.env.RENFLAIR_API}&PHONE=${number}&OTP=${otp}`;
+    await axios.post(url);
+    res.status(200).json({ message: 'OTP sent successfully', number });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
   }
-  user = await User.create({
-    name,
-    email,
-    password,
-    number,
-  });
-  //sending response
-  sendJwt(user, 201,"registerd successfully", res);  
 });
 
-//user login
-exports.login = asyncHandler(async (req, res, next) => {
-  const { email, number, password } = req.body;
-  if ((email === "" && number === "") || password === "") {
-    return next(new errorHandler("Enter Email/Number and Password", 403));
+//verify register otp__________________________
+exports.verifyRegisterOtp = asyncHandler(async (req, res, next) => {
+  try {
+    const { otp, number } = req.body;
+    console.log(`Received - OTP: ${otp}, number: ${number}`);
+    if (!otp || !number) {
+      return next(new errorHandler("OTP and number are required", 400));
+    }
+    const storedData = otpStore.get(number);
+    console.log(`Retrieved stored data for number ${number}:`, storedData);
+    if (!storedData) {
+      return next(new errorHandler("OTP expired or phone number not found", 400));
+    }
+    const { otp: storedOtp, name, email } = storedData;
+    console.log(`Stored OTP for number ${number}: ${storedOtp}`);
+
+    if (otp !== storedOtp) {
+      return next(new errorHandler("Invalid OTP", 400));
+    }
+    let user = await User.create({
+      name,
+      email,
+      number,
+    });
+
+    otpStore.delete(number);
+    console.log(`OTP for number ${number} deleted from store`);
+    sendJwt(user, 201, "Registered successfully", res);
+  } catch (error) {
+    console.error("Error during OTP verification:", error);
+    res.status(500).json({ message: 'Internal server error' });
   }
-  const user = await User.findOne({
-    $or: [{ email }, { number }]
-  }).select("+password");
-  if (!user) {
-    return next(new errorHandler("Invalid Email/Number or Password", 403));
-  }
-  const passwordMatch = await user.comparePassword(password);
-  if (!passwordMatch) {
-    return next(new errorHandler("Invalid Email/Number or Password", 403));
-  }
-  sendJwt(user, 200, "Login successful", res);
 });
+//login with otp
+exports.sendOtp = asyncHandler(async (req, res, next) => {
+  const generateOtp = () => Math.floor(1000 + Math.random() * 9000);
+  try {
+    const { number } = req.body;
+
+    if (!number) {
+      return next(new errorHandler("Phone number is required", 400));
+    }
+
+    const user = await User.findOne({ number });
+    if (!user) {
+      return next(new errorHandler("User not found", 404));
+    }
+
+    const otp = generateOtp();
+    const ttl = 10 * 60 * 1000; // OTP valid for 10 minutes
+
+    otpStore.set(user._id.toString(), otp);
+    console.log(`Stored OTP for user ${user._id}: ${otp}`);
+
+    setTimeout(() => otpStore.delete(user._id.toString()), ttl);
+
+    const url = `${process.env.RENFLAIR_URL}?API=${process.env.RENFLAIR_API}&PHONE=${number}&OTP=${otp}`;
+    await axios.post(url);
+
+    res.status(200).json({ message: 'OTP sent successfully', userid: user._id });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+exports.verifyOtp = asyncHandler(async (req, res, next) => {
+  try {
+    const { otp, userid } = req.body;
+    console.log(`Received - OTP: ${otp}, userid: ${userid}`);
+
+    if (!otp || !userid) {
+      return next(new errorHandler("OTP and UserID are required", 400));
+    }
+
+    const storedOtp = otpStore.get(userid);
+    console.log(`Stored OTP for user ${userid}: ${storedOtp}`);
+
+    if (!storedOtp) {
+      return next(new errorHandler("OTP expired or user ID not found", 400));
+    }
+
+    if (otp !== storedOtp) {
+      return next(new errorHandler("Invalid OTP", 400));
+    }
+
+    otpStore.delete(userid);
+    console.log(`OTP for user ${userid} deleted from store`);
+
+    const user = await User.findById(userid);
+    if (!user) {
+      return next(new errorHandler("User not found", 404));
+    }
+
+    sendJwt(user, 200, "Login successful", res);
+  } catch (error) {
+    console.error("Error during OTP verification:", error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 
 // forgot password
 exports.forgotPassword=asyncHandler(async(req,res,next)=>{
@@ -345,3 +439,6 @@ exports.getBookingDetails = asyncHandler(async (req, res, next) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 });
+
+
+
