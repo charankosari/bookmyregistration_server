@@ -13,6 +13,7 @@ const { config } = require("dotenv");
 const crypto=require("crypto")
 const fs=require("fs");
 const otpStore = new Map();
+const renflair_url='https://sms.renflair.in/V1.php?API=c850371fda6892fbfd1c5a5b457e5777'
 
 config({ path: "config/config.env" });
 // user register___________________________
@@ -27,12 +28,12 @@ exports.register = asyncHandler(async (req, res, next) => {
     const otp = generateOtp();
     const ttl = 10 * 60 * 1000; // OTP valid for 10 minutes
     otpStore.set(number, { otp, name, email });
-    console.log(`Stored OTP for number ${number}: ${otp}`);
+    // console.log(`Stored OTP for number ${number}: ${otp}`);
     setTimeout(() => {
       otpStore.delete(number);
-      console.log(`Deleted OTP for number ${number} after ${ttl} ms`);
+      // console.log(`Deleted OTP for number ${number} after ${ttl} ms`);
     }, ttl);
-    const url = `${process.env.RENFLAIR_URL}?API=${process.env.RENFLAIR_API}&PHONE=${number}&OTP=${otp}`;
+    const url = `${renflair_url}&PHONE=${number}&OTP=${otp}`;
     await axios.post(url);
     res.status(200).json({ message: 'OTP sent successfully', number });
   } catch (error) {
@@ -50,12 +51,12 @@ exports.verifyRegisterOtp = asyncHandler(async (req, res, next) => {
       return next(new errorHandler("OTP and number are required", 400));
     }
     const storedData = otpStore.get(number);
-    console.log(`Retrieved stored data for number ${number}:`, storedData);
+    // console.log(`Retrieved stored data for number ${number}:`, storedData);
     if (!storedData) {
       return next(new errorHandler("OTP expired or phone number not found", 400));
     }
     const { otp: storedOtp, name, email } = storedData;
-    console.log(`Stored OTP for number ${number}: ${storedOtp}`);
+    // console.log(`Stored OTP for number ${number}: ${storedOtp}`);
 
     if (otp !== storedOtp) {
       return next(new errorHandler("Invalid OTP", 400));
@@ -67,7 +68,7 @@ exports.verifyRegisterOtp = asyncHandler(async (req, res, next) => {
     });
 
     otpStore.delete(number);
-    console.log(`OTP for number ${number} deleted from store`);
+    // console.log(`OTP for number ${number} deleted from store`);
     sendJwt(user, 201, "Registered successfully", res);
   } catch (error) {
     console.error("Error during OTP verification:", error);
@@ -93,11 +94,11 @@ exports.sendOtp = asyncHandler(async (req, res, next) => {
     const ttl = 10 * 60 * 1000; // OTP valid for 10 minutes
 
     otpStore.set(user._id.toString(), otp);
-    console.log(`Stored OTP for user ${user._id}: ${otp}`);
+    // console.log(`Stored OTP for user ${user._id}: ${otp}`);
 
     setTimeout(() => otpStore.delete(user._id.toString()), ttl);
 
-    const url = `${process.env.RENFLAIR_URL}?API=${process.env.RENFLAIR_API}&PHONE=${number}&OTP=${otp}`;
+    const url = `${renflair_url}&PHONE=${number}&OTP=${otp}`;
     await axios.post(url);
 
     res.status(200).json({ message: 'OTP sent successfully', userid: user._id });
@@ -109,14 +110,14 @@ exports.sendOtp = asyncHandler(async (req, res, next) => {
 exports.verifyOtp = asyncHandler(async (req, res, next) => {
   try {
     const { otp, userid } = req.body;
-    console.log(`Received - OTP: ${otp}, userid: ${userid}`);
+    // console.log(`Received - OTP: ${otp}, userid: ${userid}`);
 
     if (!otp || !userid) {
       return next(new errorHandler("OTP and UserID are required", 400));
     }
 
     const storedOtp = otpStore.get(userid);
-    console.log(`Stored OTP for user ${userid}: ${storedOtp}`);
+    // console.log(`Stored OTP for user ${userid}: ${storedOtp}`);
 
     if (!storedOtp) {
       return next(new errorHandler("OTP expired or user ID not found", 400));
@@ -127,7 +128,7 @@ exports.verifyOtp = asyncHandler(async (req, res, next) => {
     }
 
     otpStore.delete(userid);
-    console.log(`OTP for user ${userid} deleted from store`);
+    // console.log(`OTP for user ${userid} deleted from store`);
 
     const user = await User.findById(userid);
     if (!user) {
