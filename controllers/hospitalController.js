@@ -172,7 +172,6 @@ exports.addDoctor = asyncHandler(async (req, res, next) => {
       noOfDays,
       code: doctorCode
     });
-
     const startDate = new Date();
     for (let i = 0; i < noOfDays; i++) {
       const currentDate = new Date(startDate);

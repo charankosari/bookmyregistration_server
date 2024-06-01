@@ -82,7 +82,7 @@ exports.sendOtp = asyncHandler(async (req, res, next) => {
     const { number } = req.body;
 
     if (!number) {
-      return next(new errorHandler("Phone number is required", 400));
+      return next(new errorHandler("Enter a valid 10 digit phone number", 400));
     }
 
     const user = await User.findOne({ number });
@@ -117,7 +117,6 @@ exports.verifyOtp = asyncHandler(async (req, res, next) => {
     }
 
     const storedOtp = otpStore.get(userid);
-    // console.log(`Stored OTP for user ${userid}: ${storedOtp}`);
 
     if (!storedOtp) {
       return next(new errorHandler("OTP expired or user ID not found", 400));
