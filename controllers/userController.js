@@ -1,19 +1,20 @@
 const asyncHandler = require("../middleware/asynchandler");
 const errorHandler = require("../utils/errorHandler");
 const User = require("../models/userModel");
-const Doctor=require("../models/DoctorsModel")
-const Hospital =require("../models/HospitalsModel")
-const Booking = require("../models/BookingModel")
+const Doctor = require("../models/DoctorsModel");
+const Hospital = require("../models/HospitalsModel");
+const Booking = require("../models/BookingModel");
 const sendJwt = require("../utils/jwttokenSend");
-const bcrypt = require("bcrypt")
+const bcrypt = require("bcrypt");
 const saltRounds = 10;
-const axios =require("axios");
-const sendEmail=require("../utils/sendEmail")
+const axios = require("axios");
+const sendEmail = require("../utils/sendEmail");
 const { config } = require("dotenv");
-const crypto=require("crypto")
-const fs=require("fs");
+const crypto = require("crypto");
+const fs = require("fs");
 const otpStore = new Map();
-const renflair_url='https://sms.renflair.in/V1.php?API=c850371fda6892fbfd1c5a5b457e5777'
+const renflair_url =
+  "https://sms.renflair.in/V1.php?API=c850371fda6892fbfd1c5a5b457e5777";
 
 config({ path: "config/config.env" });
 // user register___________________________
@@ -33,10 +34,10 @@ exports.register = asyncHandler(async (req, res, next) => {
     }, ttl);
     const url = `${renflair_url}&PHONE=${number}&OTP=${otp}`;
     await axios.post(url);
-    res.status(200).json({ message: 'OTP sent successfully', number });
+    res.status(200).json({ message: "OTP sent successfully", number });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
@@ -50,7 +51,9 @@ exports.verifyRegisterOtp = asyncHandler(async (req, res, next) => {
     }
     const storedData = otpStore.get(number);
     if (!storedData) {
-      return next(new errorHandler("OTP expired or phone number not found", 400));
+      return next(
+        new errorHandler("OTP expired or phone number not found", 400)
+      );
     }
     const { otp: storedOtp, name, email } = storedData;
 
@@ -67,7 +70,7 @@ exports.verifyRegisterOtp = asyncHandler(async (req, res, next) => {
     sendJwt(user, 201, "Registered successfully", res);
   } catch (error) {
     console.error("Error during OTP verification:", error);
-    res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 //login with otp
@@ -95,10 +98,12 @@ exports.sendOtp = asyncHandler(async (req, res, next) => {
     const url = `${renflair_url}&PHONE=${number}&OTP=${otp}`;
     await axios.post(url);
 
-    res.status(200).json({ message: 'OTP sent successfully', userid: user._id });
+    res
+      .status(200)
+      .json({ message: "OTP sent successfully", userid: user._id });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 exports.verifyOtp = asyncHandler(async (req, res, next) => {
@@ -129,18 +134,18 @@ exports.verifyOtp = asyncHandler(async (req, res, next) => {
     sendJwt(user, 200, "Login successful", res);
   } catch (error) {
     console.error("Error during OTP verification:", error);
-    res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
 // my details
-exports.userDetails=asyncHandler(async(req,res,next)=>{
-  const user=await User.findById(req.user.id)
-  if(!user){
-    return next(new errorHandler("Login to access this resource",400))
+exports.userDetails = asyncHandler(async (req, res, next) => {
+  const user = await User.findById(req.user.id);
+  if (!user) {
+    return next(new errorHandler("Login to access this resource", 400));
   }
-  res.status(200).send({success:true,user})
-})
+  res.status(200).send({ success: true, user });
+});
 
 //profile update
 exports.profileUpdate = asyncHandler(async (req, res, next) => {
@@ -157,45 +162,47 @@ exports.profileUpdate = asyncHandler(async (req, res, next) => {
   }
 });
 
-
-
 // get all users---admin
-exports.getAllUsers=asyncHandler(async(req,res,next)=>{
-   const users=await User.find()
-   res.status(200).json({success:true,users})
-})
+exports.getAllUsers = asyncHandler(async (req, res, next) => {
+  const users = await User.find();
+  res.status(200).json({ success: true, users });
+});
 
 // get single user---admin
-exports.getUser=asyncHandler(async(req,res,next)=>{
-  const user=await User.findById(req.params.id)
-  res.status(200).json({success:true,user})
-})
+exports.getUser = asyncHandler(async (req, res, next) => {
+  const user = await User.findById(req.params.id);
+  res.status(200).json({ success: true, user });
+});
 
-// update user role ---admin 
-exports.updateUserRole=asyncHandler(async(req,res,next)=>{
-  const id=req.params.id;
-  let user=await User.findById(id)
-  if(!user){
-    return next(new errorHandler(`user dosent exist with id ${id}`),400)
+// update user role ---admin
+exports.updateUserRole = asyncHandler(async (req, res, next) => {
+  const id = req.params.id;
+  let user = await User.findById(id);
+  if (!user) {
+    return next(new errorHandler(`user dosent exist with id ${id}`), 400);
   }
-  const updatedUserData={
-    role:req.body.role
-  }
-   user=await User.findByIdAndUpdate(id,updatedUserData,{new:true,runValidators:true,useFindAndModify:false})
-  res.status(201).json({success:true,user})
-})
+  const updatedUserData = {
+    role: req.body.role,
+  };
+  user = await User.findByIdAndUpdate(id, updatedUserData, {
+    new: true,
+    runValidators: true,
+    useFindAndModify: false,
+  });
+  res.status(201).json({ success: true, user });
+});
 
 // delete user --admin
-exports.deleteUser=asyncHandler(async(req,res,next)=>{
-  const id=req.params.id
-  const user=await User.findById(id)
-  if(!user){
-    return next(new errorHandler(`user dosent exist with id ${id}`),400)
+exports.deleteUser = asyncHandler(async (req, res, next) => {
+  const id = req.params.id;
+  const user = await User.findById(id);
+  if (!user) {
+    return next(new errorHandler(`user dosent exist with id ${id}`), 400);
   }
-  const message=await User.findByIdAndDelete(id);
+  const message = await User.findByIdAndDelete(id);
 
-  res.status(200).json({success:true,message:"user deleted successfully"})
-})
+  res.status(200).json({ success: true, message: "user deleted successfully" });
+});
 
 //add and remove whishlist doctor________________________________________________________________________
 exports.wishListDoctor = asyncHandler(async (req, res, next) => {
@@ -206,62 +213,69 @@ exports.wishListDoctor = asyncHandler(async (req, res, next) => {
     return res.status(404).json({ success: false, message: "User not found" });
   }
   let wishList = user.wishList || [];
-  const itemExist = wishList.find((item) => item.Doctor.toString() === DoctorfId);
+  const itemExist = wishList.find(
+    (item) => item.Doctor.toString() === DoctorId
+  );
   if (itemExist) {
     wishList = wishList.filter((item) => item.Doctor.toString() !== DoctorId);
     user.wishList = wishList;
     await user.save({ validateBeforeSave: false });
     return res
       .status(200)
-      .json({ success: true, message: "Doctor removed from Wishlist successfully" });
+      .json({
+        success: true,
+        message: "Doctor removed from Wishlist successfully",
+      });
   }
   wishList.push({ Doctor: DoctorId });
   user.wishList = wishList;
   await user.save({ validateBeforeSave: false });
-  return res.status(200).json({ success: true, message: "Doctor wishlisted successfully" });
+  return res
+    .status(200)
+    .json({ success: true, message: "Doctor wishlisted successfully" });
 });
-
-
-
 
 // get all Wishlist details__________________
 exports.getWishlist = asyncHandler(async (req, res, next) => {
   const userId = req.user.id;
-  const user = await User.findById(userId).select('wishList').lean();
+  const user = await User.findById(userId).select("wishList").lean();
   if (!user) {
     return res.status(404).json({ success: false, message: "User not found" });
   }
-  const doctorIds = user.wishList.map(item => item.Doctor);
-  
+  const doctorIds = user.wishList.map((item) => item.Doctor);
+
   // Find doctors with specific fields
   const wishlistData = await Doctor.find({ _id: { $in: doctorIds } })
-    .select('name experience study specialist hospitalid')
+    .select("name experience study specialist hospitalid")
     .lean();
 
-  res.status(200).json({ message: "Wishlist Data", success: true, data: wishlistData });
+  res
+    .status(200)
+    .json({ message: "Wishlist Data", success: true, data: wishlistData });
 });
 
-
 // empty the wishlist_______________________________________
-exports.deleteWishlist=asyncHandler(async(req,res,next)=>{
-  const userId=req.user.id
-  const user=await User.findById(userId)
-  user.wishList=[]
-  user.save({validateBeforeSave:false})
-  res.status(200).json({success:true,message:"Wishlist is empty successfully"})
-})
+exports.deleteWishlist = asyncHandler(async (req, res, next) => {
+  const userId = req.user.id;
+  const user = await User.findById(userId);
+  user.wishList = [];
+  user.save({ validateBeforeSave: false });
+  res
+    .status(200)
+    .json({ success: true, message: "Wishlist is empty successfully" });
+});
 const findAvailableSlot = async (doctorId, date, session, time) => {
   const doctor = await Doctor.findById(doctorId);
 
   if (!doctor) {
-    throw new Error('Doctor not found');
+    throw new Error("Doctor not found");
   }
 
-  const dateString = date.toISOString().split('T')[0];
+  const dateString = date.toISOString().split("T")[0];
   const slots = doctor.bookingsids.get(dateString)[session];
 
   // Find the next available slot if the requested slot is not free
-  const slotIndex = slots.findIndex(slot => slot.time === time);
+  const slotIndex = slots.findIndex((slot) => slot.time === time);
   for (let i = slotIndex; i < slots.length; i++) {
     if (slots[i].bookingId === null) {
       return slots[i];
@@ -274,24 +288,34 @@ const findAvailableSlot = async (doctorId, date, session, time) => {
 //booking id generator
 const generateBookingId = (phonenumber) => {
   const currentDate = new Date();
-  const year = currentDate.getFullYear().toString().slice(2); 
-  const month = (currentDate.getMonth() + 1).toString().padStart(2, '0');
-  const day = currentDate.getDate().toString().padStart(2, '0'); 
+  const year = currentDate.getFullYear().toString().slice(2);
+  const month = (currentDate.getMonth() + 1).toString().padStart(2, "0");
+  const day = currentDate.getDate().toString().padStart(2, "0");
 
-  const datePart = year + month + day; 
+  const datePart = year + month + day;
   const mobilePart = phonenumber.toString().slice(-4);
   const combined = (datePart + mobilePart).slice(-6);
   return combined;
-}
+};
 // Controller function to handle booking
 exports.bookAppointment = asyncHandler(async (req, res, next) => {
   try {
-    const { doctorId, hospitalId, date, session, time, name, phonenumber, email, amountpaid } = req.body;
+    const {
+      doctorId,
+      hospitalId,
+      date,
+      session,
+      time,
+      name,
+      phonenumber,
+      email,
+      amountpaid,
+    } = req.body;
     const userId = req.user.id;
 
     const doctor = await Doctor.findById(doctorId);
     if (!doctor) {
-      return res.status(404).json({ message: 'Doctor not found' });
+      return res.status(404).json({ message: "Doctor not found" });
     }
     const bookingId = generateBookingId(phonenumber);
     const booking = new Booking({
@@ -305,38 +329,44 @@ exports.bookAppointment = asyncHandler(async (req, res, next) => {
       date: new Date(date),
       session,
       time,
-      bookingId
+      bookingId,
     });
 
-    console.log('New Booking:', booking);
+    console.log("New Booking:", booking);
 
-    const availableSlot = await findAvailableSlot(doctorId, new Date(date), session, time);
+    const availableSlot = await findAvailableSlot(
+      doctorId,
+      new Date(date),
+      session,
+      time
+    );
 
-    console.log('Available Slot:', availableSlot);
+    console.log("Available Slot:", availableSlot);
 
     if (!availableSlot) {
-      return res.status(400).json({ message: 'All slots are booked' });
+      return res.status(400).json({ message: "All slots are booked" });
     }
 
     booking.time = availableSlot.time; // Update booking time with the available slot
 
     await booking.save();
 
-    const dateString = new Date(date).toISOString().split('T')[0];
-    const doctorSlot = doctor.bookingsids.get(dateString)[session].find(slot => slot.time === booking.time);
+    const dateString = new Date(date).toISOString().split("T")[0];
+    const doctorSlot = doctor.bookingsids
+      .get(dateString)
+      [session].find((slot) => slot.time === booking.time);
     doctorSlot.bookingId = booking._id;
 
     await doctor.save();
     const user = await User.findById(userId);
     user.bookings.push({ bookingid: booking._id });
     await user.save();
-    res.status(201).json({ message: 'Booking successful', booking });
+    res.status(201).json({ message: "Booking successful", booking });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ message: "Internal server error" });
   }
 });
-
 
 //user controller for getting booking details
 
@@ -345,15 +375,15 @@ exports.getBookingDetails = asyncHandler(async (req, res, next) => {
     const { bookingId } = req.params;
     const booking = await Booking.findById(bookingId);
     if (!booking) {
-      return res.status(404).json({ message: 'Booking not found' });
+      return res.status(404).json({ message: "Booking not found" });
     }
     const doctor = await Doctor.findById(booking.doctorid);
     const hospital = await Hospital.findById(booking.hospitalid);
     if (!doctor) {
-      return res.status(404).json({ message: 'Doctor not found' });
+      return res.status(404).json({ message: "Doctor not found" });
     }
     if (!hospital) {
-      return res.status(404).json({ message: 'Hospital not found' });
+      return res.status(404).json({ message: "Hospital not found" });
     }
     const bookingDetails = {
       booking: {
@@ -385,7 +415,50 @@ exports.getBookingDetails = asyncHandler(async (req, res, next) => {
     res.status(200).json(bookingDetails);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+//user doctors rendering
+// exports.getDoctorDetails = asyncHandler(async (req, res, next) => {
+//   try {
+//     const hospitalId = req.params.id;
+//     console.log(hospitalId)
+//     const hospital = await Hospital.findById(hospitalId);
+//     if (!hospital) {
+//       return res.status(404).json({ error: "Hospital not found" });
+//     }
+//     return res.status(200).json(hospital);
+//   } catch (err) {
+//     console.error(err);
+//     return res.status(500).json({ error: "Internal server error" });
+//   }
+// });
+
+exports.getDoctorDetails = asyncHandler(async (req, res, next) => {
+  try {
+    const hospitalId = req.params.id;
+
+    const hospital = await Hospital.findById(hospitalId);
+
+    if (!hospital) {
+      return res.status(404).json({ message: "Hospital not found" });
+    }
+
+    const doctorIds = hospital.doctors.map(doc => doc.doctorid);
+
+    const fieldsToReturn = "_id name experience study specialist hospitalid bookingsids timings";
+
+    const doctors = await Doctor.find({ _id: { $in: doctorIds } }).select(fieldsToReturn);
+
+    res.status(200).json({
+      success: true,
+      hospital: {
+        ...hospital._doc,
+        doctors: doctors
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 });
 
@@ -393,15 +466,15 @@ exports.getBookingDetails = asyncHandler(async (req, res, next) => {
 
 exports.getUserBookingDetails = asyncHandler(async (req, res, next) => {
   try {
-    const userId = req.user.id; 
+    const userId = req.user.id;
 
     const user = await User.findById(userId);
 
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: "User not found" });
     }
 
-    const bookingIds = user.bookings.map(booking => booking.bookingid);
+    const bookingIds = user.bookings.map((booking) => booking.bookingid);
 
     const bookings = await Booking.find({ _id: { $in: bookingIds } });
 
@@ -412,7 +485,7 @@ exports.getUserBookingDetails = asyncHandler(async (req, res, next) => {
       const hospital = await Hospital.findById(booking.hospitalid);
 
       if (!doctor || !hospital) {
-        continue; 
+        continue;
       }
 
       const detail = {
@@ -444,14 +517,13 @@ exports.getUserBookingDetails = asyncHandler(async (req, res, next) => {
 
       bookingDetails.push(detail);
     }
+
     res.status(200).json({
       success: true,
       bookingDetails: bookingDetails,
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ message: "Internal server error" });
   }
 });
-
-

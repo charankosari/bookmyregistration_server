@@ -248,7 +248,9 @@ exports.profileUpdate = asyncHandler(async (req, res, next) => {
     return next(new errorHandler("Failed to update profile.", 500));
   }
 });
-
+exports.getDoctorDetails=asyncHandler(async(next,req,res)=>{
+  
+})
 // get all doctors---admin
 exports.getAllDoctors=asyncHandler(async(req,res,next)=>{
   const doctors=await Doctor.find()
