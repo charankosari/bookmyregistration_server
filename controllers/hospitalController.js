@@ -4,113 +4,119 @@ const Hospital = require("../models/HospitalsModel");
 const Doctor = require("../models/DoctorsModel");
 const Booking=require("../models/BookingModel")
 const User=require("../models/userModel")
-const sendJwt = require("../utils/jwttokenSend");
+const sendJwt = require("../utils/jwttokensendHosp");
 const sendEmail=require("../utils/sendEmail")
 const crypto=require("crypto")
+const { config } = require("dotenv");
 const fs=require("fs");
+const axios=require("axios")
 
+const otpStore = new Map();
+const renflair_url='https://sms.renflair.in/V1.php?API=c850371fda6892fbfd1c5a5b457e5777'
 
-// hospital register
-exports.register = asyncHandler(async (req, res, next) => {  
-  const { hospitalName, address, email, password, number } = req.body;  
-  let hosp = await Hospital.findOne({ email });
+config({ path: "config/config.env" });
+// user register___________________________
+exports.register = asyncHandler(async (req, res, next) => {
+  const generateOtp = () => Math.floor(1000 + Math.random() * 9000);
+  try {
+    const { hospitalName, address,image, email, number } = req.body;
+    let hosp = await Hospital.findOne({ email });
   let hosp2 = await Hospital.findOne({ hospitalName });
-  if (hosp || hosp2) {
+  let hosp3 = await Hospital.findOne({ number });
+  if (hosp || hosp2 ||hosp3) {
     return next(new errorHandler("Hospital already exists", 401));
   }
-  
-  hosp = await Hospital.create({
-    hospitalName,
-    address,
-    email,
-    password,
-    number,
-  });
-  
-  sendJwt(hosp, 201, "Registered successfully", res);  
+    const otp = generateOtp();
+    const ttl = 10 * 60 * 1000; // OTP valid for 10 minutes
+    otpStore.set(number, { otp, hospitalName,address, email,image });
+    setTimeout(() => {
+      otpStore.delete(number);
+    }, ttl);
+    const url = `${renflair_url}&PHONE=${number}&OTP=${otp}`;
+    await axios.post(url);
+    res.status(200).json({ message: 'OTP sent successfully', number });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
 });
 
+//verify register otp__________________________
+exports.verifyRegisterOtp = asyncHandler(async (req, res, next) => {
+  try {
+    const { otp, number } = req.body;
+    if (!otp || !number) {
+      return next(new errorHandler("OTP and number are required", 400));
+    }
+    const storedData = otpStore.get(number);
+    if (!storedData) {
+      return next(new errorHandler("OTP expired or phone number not found", 400));
+    }
+    const { otp: storedOtp, hospitalName,address, email,image } = storedData;
 
-//hosppital login
-exports.login = asyncHandler(async (req, res, next) => {
-  const { email, number, password } = req.body;
+    if (otp !== storedOtp) {
+      return next(new errorHandler("Invalid OTP", 400));
+    }
+    let hosp = await Hospital.create({
+      hospitalName,address, email,number,image
+    });
 
-  if ((email === "" && number === "") || password === "") {
-    return next(new errorHandler("Enter Email/Number and Password", 403));
+    otpStore.delete(number);
+    sendJwt(hosp, 201, "Registered successfully", res);
+  } catch (error) {
+    console.error("Error during OTP verification:", error);
+    res.status(500).json({ message: 'Internal server error' });
   }
-
-  const hosp = await Hospital.findOne({
-    $or: [{ email }, { number }]
-  }).select("+password");
-
-  if (!hosp) {
-    return next(new errorHandler("Invalid Email/Number or Password", 403));
-  }
-  const passwordMatch = await hosp.comparePassword(password);
-  if (!passwordMatch) {
-    return next(new errorHandler("Invalid Email/Number or Password", 403));
-  }
-  sendJwt(hosp, 200, "Login successful", res);
 });
-
-// forgot password
-exports.forgotPassword=asyncHandler(async(req,res,next)=>{
-  const email=req.body.email
-  const hosp=await Hospital.findOne({email})
-  if(!hosp){
-    next(new errorHandler("Hospital dosent exit",401))
+//login with otp
+exports.sendOtp = asyncHandler(async (req, res, next) => {
+  const generateOtp = () => Math.floor(1000 + Math.random() * 9000);
+  try {
+    const { number } = req.body;
+    if (!number) {
+      return next(new errorHandler("Enter a valid 10 digit phone number", 400));
+    }
+    const hosp = await Hospital.findOne({ number });
+    if (!hosp) {
+      return next(new errorHandler("Invalid Email/Number or Password", 403));
+    }
+    const otp = generateOtp();
+    const ttl = 10 * 60 * 1000; // OTP valid for 10 minutes
+    otpStore.set(hosp._id.toString(), otp);
+    setTimeout(() => otpStore.delete(hosp._id.toString()), ttl);
+    const url = `${renflair_url}&PHONE=${number}&OTP=${otp}`;
+    await axios.post(url);
+    res.status(200).json({ message: 'OTP sent successfully', hospid: hosp._id });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
   }
-  const token=hosp.resetToken()
-  const resetUrl=`http://localhost:5173/resetpassword/${token}`
-  const message=`your reset url is ${resetUrl} leave it if you didnt requested for it`
-  await hosp.save({validateBeforeSave:false})
-  try{
-   const mailMessage= await sendEmail({
-    email:hosp.email,
-    subject:"password reset mail",
-    message:message
-   })
-   res.status(201).json({success:true,message:"mail sent successfully",mailMessage:mailMessage})
-
+});
+exports.verifyOtp = asyncHandler(async (req, res, next) => {
+  try {
+    const { otp, hospid } = req.body;
+    if (!otp || !hospid) {
+      return next(new errorHandler("OTP and UserID are required", 400));
+    }
+    const storedOtp = otpStore.get(hospid);
+    if (!storedOtp) {
+      return next(new errorHandler("OTP expired or user ID not found", 400));
+    }
+    if (otp !== storedOtp) {
+      return next(new errorHandler("Invalid OTP", 400));
+    }
+    otpStore.delete(hospid);
+    const hosp = await Hospital.findById(hospid);
+    if (!hosp) {
+      return next(new errorHandler("Hospital not found", 404));
+    }
+    sendJwt(hosp, 200, "Login successful", res);
+  } catch (error) {
+    console.error("Error during OTP verification:", error);
+    res.status(500).json({ message: 'Internal server error' });
   }
-  catch(e){
-    user.resetPasswordExpire=undefined;
-    user.resetPasswordToken=undefined;
-    await user.save({validateBeforeSave:false})
-    next(new errorHandler(e.message,401))
-  }
-})
-
-// reset password____________________
-exports.resetPassword=asyncHandler(async(req,res,next)=>{
-  const token=req.params.id
-  const hashedToken=crypto.createHash("sha256").update(token).digest("hex")
-  const hosp=await Hospital.findOne({resetPasswordToken:hashedToken,resetPasswordExpire:{$gt:Date.now()}})
-  if(!hosp){
-    return next(new errorHandler("Reset password is invalid or expired",400))
-  }
-  hosp.password=req.body.password
-  hosp.resetPasswordExpire=undefined
-  hosp.resetPasswordToken=undefined
-  await hosp.save()
-  sendJwt(hosp,201,"reset password successfully",res)
-})
-
-
-
-// update password_____________________
-exports.updatePassword=asyncHandler(async(req,res,next)=>{
-  const {password,oldPassword}=req.body
-  const hosp=await Hospital.findById(req.hosp.id).select("+password")
-  const passwordCheck=await hosp.comparePassword(oldPassword)
-  if(!passwordCheck){
-    return next(new errorHandler("Wrong password",400))
-  }
-  hosp.password=password;
-  await hosp.save()
-  sendJwt(hosp,201,"password updated successfully",res)
-
-})// Random words generator
+});
+// Random words generator
 function getRandomLetters(name, count) {
   const letters = name.replace(/[^a-zA-Z]/g, '');
   let result = '';
@@ -126,9 +132,8 @@ function getRandomLetters(name, count) {
   }
   return result.toUpperCase();
 }
-
 function generateTimeSlots(timings, slotDuration) {
-  if (!timings.length) return [];
+  if (!timings) return [];
 
   const slots = [];
 
@@ -145,6 +150,7 @@ function generateTimeSlots(timings, slotDuration) {
 
   return slots;
 }
+
 
 // Add doctor
 exports.addDoctor = asyncHandler(async (req, res, next) => {
@@ -172,18 +178,23 @@ exports.addDoctor = asyncHandler(async (req, res, next) => {
       noOfDays,
       code: doctorCode
     });
+   
     const startDate = new Date();
     for (let i = 0; i < noOfDays; i++) {
       const currentDate = new Date(startDate);
       currentDate.setDate(startDate.getDate() + i);
       const dateStr = currentDate.toISOString().split('T')[0];
 
+   
       const morningSlots = generateTimeSlots(timings.morning, slotTimings);
       const eveningSlots = generateTimeSlots(timings.evening, slotTimings);
-
       doctor.bookingsids.set(dateStr, { morning: morningSlots, evening: eveningSlots });
-    }
+    }  
+    if (!hospital.category.find(cat => cat.types === specialist)) {
+      hospital.category.push({ types: specialist });
 
+    }
+    await hospital.save();
     const savedDoctor = await doctor.save();
     hospital.doctors.push({ doctorid: savedDoctor._id });
     await hospital.save();
@@ -266,9 +277,9 @@ exports.getAllHospitals=asyncHandler(async(req,res,next)=>{
 })
 
 // get single hospital---admin  
-exports.getUser=asyncHandler(async(req,res,next)=>{
-  const user=await Hospital.findById(req.params.id)
-  res.status(200).json({success:true,user})
+exports.getHosptial=asyncHandler(async(req,res,next)=>{
+  const hosp=await Hospital.findById(req.params.id)
+  res.status(200).json({success:true,hosp})
 })
 
 
@@ -336,8 +347,34 @@ exports.addMoreSessions = async (req, res, next) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 };
+// doctors detailssss
+exports.getHospitalWithDoctors = asyncHandler(async (req, res, next) => {
+  try {
+    const hospitalId = req.hosp.id;
 
+    const hospital = await Hospital.findById(hospitalId);
 
+    if (!hospital) {
+      return res.status(404).json({ message: "Hospital not found" });
+    }
+
+    const doctorIds = hospital.doctors.map(doc => doc.doctorid);
+
+    const fieldsToReturn = "_id name experience study specialist hospitalid bookingsids timings";
+
+    const doctors = await Doctor.find({ _id: { $in: doctorIds } }).select(fieldsToReturn);
+
+    res.status(200).json({
+      success: true,
+      hospital: {
+        ...hospital._doc,
+        doctors: doctors
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
 //doctor controller for getting booking details
 exports.getUserDetailsByBookingId = asyncHandler(async (req, res, next) => {
   try {

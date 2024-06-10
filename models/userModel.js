@@ -35,7 +35,7 @@ const userSchema = new mongoose.Schema({
       Doctor:{
         type:mongoose.Schema.ObjectId,
         ref:"Doctors"
-      }
+      }, _id: false
     }
   ],
   bookings:[
@@ -43,7 +43,7 @@ const userSchema = new mongoose.Schema({
       bookingid:{
         type:mongoose.Schema.ObjectId,
         ref:"Bookings"
-      }
+      }, _id: false
     }
   ],
   role:{

@@ -28,10 +28,8 @@ exports.register = asyncHandler(async (req, res, next) => {
     const otp = generateOtp();
     const ttl = 10 * 60 * 1000; // OTP valid for 10 minutes
     otpStore.set(number, { otp, name, email });
-    // console.log(`Stored OTP for number ${number}: ${otp}`);
     setTimeout(() => {
       otpStore.delete(number);
-      // console.log(`Deleted OTP for number ${number} after ${ttl} ms`);
     }, ttl);
     const url = `${renflair_url}&PHONE=${number}&OTP=${otp}`;
     await axios.post(url);
@@ -51,12 +49,10 @@ exports.verifyRegisterOtp = asyncHandler(async (req, res, next) => {
       return next(new errorHandler("OTP and number are required", 400));
     }
     const storedData = otpStore.get(number);
-    // console.log(`Retrieved stored data for number ${number}:`, storedData);
     if (!storedData) {
       return next(new errorHandler("OTP expired or phone number not found", 400));
     }
     const { otp: storedOtp, name, email } = storedData;
-    // console.log(`Stored OTP for number ${number}: ${storedOtp}`);
 
     if (otp !== storedOtp) {
       return next(new errorHandler("Invalid OTP", 400));
@@ -68,7 +64,6 @@ exports.verifyRegisterOtp = asyncHandler(async (req, res, next) => {
     });
 
     otpStore.delete(number);
-    // console.log(`OTP for number ${number} deleted from store`);
     sendJwt(user, 201, "Registered successfully", res);
   } catch (error) {
     console.error("Error during OTP verification:", error);
@@ -94,7 +89,6 @@ exports.sendOtp = asyncHandler(async (req, res, next) => {
     const ttl = 10 * 60 * 1000; // OTP valid for 10 minutes
 
     otpStore.set(user._id.toString(), otp);
-    // console.log(`Stored OTP for user ${user._id}: ${otp}`);
 
     setTimeout(() => otpStore.delete(user._id.toString()), ttl);
 
@@ -110,7 +104,6 @@ exports.sendOtp = asyncHandler(async (req, res, next) => {
 exports.verifyOtp = asyncHandler(async (req, res, next) => {
   try {
     const { otp, userid } = req.body;
-    // console.log(`Received - OTP: ${otp}, userid: ${userid}`);
 
     if (!otp || !userid) {
       return next(new errorHandler("OTP and UserID are required", 400));
@@ -127,7 +120,6 @@ exports.verifyOtp = asyncHandler(async (req, res, next) => {
     }
 
     otpStore.delete(userid);
-    // console.log(`OTP for user ${userid} deleted from store`);
 
     const user = await User.findById(userid);
     if (!user) {
@@ -140,62 +132,6 @@ exports.verifyOtp = asyncHandler(async (req, res, next) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 });
-
-
-// forgot password
-exports.forgotPassword=asyncHandler(async(req,res,next)=>{
-  const email=req.body.email
-  const user=await User.findOne({email})
-  if(!user){
-    next(new errorHandler("user dosent exit",401))
-  }
-  const token=user.resetToken()
-  const resetUrl=`http://localhost:5173/resetpassword/${token}`
-  const message=`your reset url is ${resetUrl} leave it if you didnt requested for it`
-  await user.save({validateBeforeSave:false})
-  try{
-   const mailMessage= await sendEmail({
-    email:user.email,
-    subject:"password reset mail",
-    message:message
-   })
-   res.status(201).json({success:true,message:"mail sent successfully",mailMessage:mailMessage})
-  }
-  catch(e){
-    user.resetPasswordExpire=undefined;
-    user.resetPasswordToken=undefined;
-    await user.save({validateBeforeSave:false})
-    next(new errorHandler(e.message,401))
-  }
-})
-// reset password
-exports.resetPassword=asyncHandler(async(req,res,next)=>{
-  const token=req.params.id
-  const hashedToken=crypto.createHash("sha256").update(token).digest("hex")
-  const user=await User.findOne({resetPasswordToken:hashedToken,resetPasswordExpire:{$gt:Date.now()}})
-  if(!user){
-    return next(new errorHandler("Reset password is invalid or expired",400))
-  }
-  user.password=req.body.password
-  user.resetPasswordExpire=undefined
-  user.resetPasswordToken=undefined
-  await user.save()
-  sendJwt(user,201,"reset password successfully",res)
-})
-
-// update password
-exports.updatePassword=asyncHandler(async(req,res,next)=>{
-  const {password,oldPassword}=req.body
-  const user=await User.findById(req.user.id).select("+password")
-  const passwordCheck=await user.comparePassword(oldPassword)
-  if(!passwordCheck){
-    return next(new errorHandler("Wrong password",400))
-  }
-  user.password=password;
-  await user.save()
-  sendJwt(user,201,"password updated successfully",res)
-
-})
 
 // my details
 exports.userDetails=asyncHandler(async(req,res,next)=>{
@@ -270,7 +206,7 @@ exports.wishListDoctor = asyncHandler(async (req, res, next) => {
     return res.status(404).json({ success: false, message: "User not found" });
   }
   let wishList = user.wishList || [];
-  const itemExist = wishList.find((item) => item.Doctor.toString() === DoctorId);
+  const itemExist = wishList.find((item) => item.Doctor.toString() === DoctorfId);
   if (itemExist) {
     wishList = wishList.filter((item) => item.Doctor.toString() !== DoctorId);
     user.wishList = wishList;
@@ -335,6 +271,18 @@ const findAvailableSlot = async (doctorId, date, session, time) => {
   return null;
 };
 
+//booking id generator
+const generateBookingId = (phonenumber) => {
+  const currentDate = new Date();
+  const year = currentDate.getFullYear().toString().slice(2); 
+  const month = (currentDate.getMonth() + 1).toString().padStart(2, '0');
+  const day = currentDate.getDate().toString().padStart(2, '0'); 
+
+  const datePart = year + month + day; 
+  const mobilePart = phonenumber.toString().slice(-4);
+  const combined = (datePart + mobilePart).slice(-6);
+  return combined;
+}
 // Controller function to handle booking
 exports.bookAppointment = asyncHandler(async (req, res, next) => {
   try {
@@ -345,7 +293,7 @@ exports.bookAppointment = asyncHandler(async (req, res, next) => {
     if (!doctor) {
       return res.status(404).json({ message: 'Doctor not found' });
     }
-
+    const bookingId = generateBookingId(phonenumber);
     const booking = new Booking({
       name,
       userid: userId,
@@ -356,7 +304,8 @@ exports.bookAppointment = asyncHandler(async (req, res, next) => {
       hospitalid: hospitalId,
       date: new Date(date),
       session,
-      time
+      time,
+      bookingId
     });
 
     console.log('New Booking:', booking);
@@ -440,5 +389,69 @@ exports.getBookingDetails = asyncHandler(async (req, res, next) => {
   }
 });
 
+//user booking details all_________________________________________
+
+exports.getUserBookingDetails = asyncHandler(async (req, res, next) => {
+  try {
+    const userId = req.user.id; 
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const bookingIds = user.bookings.map(booking => booking.bookingid);
+
+    const bookings = await Booking.find({ _id: { $in: bookingIds } });
+
+    const bookingDetails = [];
+
+    for (const booking of bookings) {
+      const doctor = await Doctor.findById(booking.doctorid);
+      const hospital = await Hospital.findById(booking.hospitalid);
+
+      if (!doctor || !hospital) {
+        continue; 
+      }
+
+      const detail = {
+        booking: {
+          _id: booking._id,
+          name: booking.name,
+          userid: booking.userid,
+          phonenumber: booking.phonenumber,
+          email: booking.email,
+          amountpaid: booking.amountpaid,
+          date: booking.date,
+          session: booking.session,
+          time: booking.time,
+        },
+        doctor: {
+          _id: doctor._id,
+          name: doctor.name,
+          experience: doctor.experience,
+          study: doctor.study,
+          specialist: doctor.specialist,
+        },
+        hospital: {
+          _id: hospital._id,
+          hospitalName: hospital.hospitalName,
+          location: hospital.address,
+          contact: hospital.number,
+        },
+      };
+
+      bookingDetails.push(detail);
+    }
+    res.status(200).json({
+      success: true,
+      bookingDetails: bookingDetails,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
 
 

@@ -1,9 +1,9 @@
 // creating token and saving cookie
 
-const sendJwt=async(user,statusCode,message,res)=>{
+const sendJwt=async(hosp,statusCode,message,res)=>{
 
     
-    const jwtToken =  user.jwtToken();
+    const jwtToken =  hosp.jwtToken();
     // opitons for cookie
     const options={
         httpOnly: true, // Prevents client-side scripts from accessing the cookie
@@ -15,8 +15,7 @@ const sendJwt=async(user,statusCode,message,res)=>{
         // expires:new Date(Date.now()+process.env.COOKIE_EXPIRES*24*60*60*1000)
     }
 
-    res.status(statusCode).cookie("jwtToken",jwtToken,options).json({success:true,message,jwtToken,user})
+    res.status(statusCode).cookie("jwtToken",jwtToken,options).json({success:true,message,jwtToken,hosp})
 }
 
 module.exports=sendJwt
-

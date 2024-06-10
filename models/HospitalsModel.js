@@ -4,68 +4,84 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const { type } = require("os");
-
-
 const HospitalSchema = new mongoose.Schema({
-    hospitalName: {
-      type: String,
-      required: [true, "Please Enter Username"],
-      maxlength: [40, "Username should not exceed 40 characters"],
-      minlength: [4, "Username should not be less than 4 characters"],
-    },
-    doctors:[
-      {
-        doctorid:{
-          type:mongoose.Schema.ObjectId,
-          ref:"Doctors"
-        }
-      }
-    ],
-    email: {
-      type: String,
-      required: [true, "Please Enter User Email"],
-      unique: true,
-      validate: [validator.isEmail, "Please enter a valid email"],
-    },
-    number: {
-      type: Number,
-      unique: true,
-      validate: {
-        validator: function (v) {
-          return /^\d{10}$/.test(v.toString());
-        },
-        message: (props) => `${props.value} is not a valid 10-digit number!`,
+  hospitalName: {
+    type: String,
+    required: [true, "Please Enter Username"],
+    maxlength: [40, "Username should not exceed 40 characters"],
+    minlength: [4, "Username should not be less than 4 characters"],
+  },
+  doctors: [
+    {
+      doctorid: {
+        type: mongoose.Schema.ObjectId,
+        ref: "Doctors",
       },
-      required: true,
-    },
-    password: {
-      type: String,
-      required: [true, "Please Enter User Password"],
-      minlength: [8, "Password should be greater than 8 characters"],
-      select: false,
-    },
-    address: [
-      {
-        hospitalAddress: {
-          type: String,
-          required: [true, "Please Enter Hospital Address"],
-          select: false,
-        },
-        pincode: {
-          type: Number,
-          required: true,
-        },
+      _id: false
+    }
+  ],
+  email: {
+    type: String,
+    required: [true, "Please Enter User Email"],
+    unique: true,
+    validate: [validator.isEmail, "Please enter a valid email"],
+  },
+  number: {
+    type: Number,
+    unique: true,
+    validate: {
+      validator: function (v) {
+        return /^\d{10}$/.test(v.toString());
       },
-    ],
-    role: {
-      type: String,
-      default: "hospital",
+      message: (props) => `${props.value} is not a valid 10-digit number!`,
     },
-   
-    resetPasswordToken: String,
-    resetPasswordExpire: Date,
-  });
-
+    required: true,
+  },
+  category: [
+    {
+      types: {
+        type: String,
+      },
+      _id: false
+    }
+  ],
+  address: [
+    {
+      hospitalAddress: {
+        type: String,
+        required: [true, "Please Enter Hospital Address"],
+        select: false,
+      },
+      pincode: {
+        type: Number,
+        required: true,
+      },
+      city: {
+        type: String,
+        required: true,
+      },
+      latitude: {
+        type: Number,
+        required: true,
+      },
+      longitude: {
+        type: Number,
+        required: true,
+      },
+      _id: false
+    }
+  ],
+  role: {
+    type: String,
+    default: "hospital",
+  },
+  image: {
+    type: [String],
+    _id: false
+  },
+  resetPasswordToken: String,
+  resetPasswordExpire: Date,
+});
 // pre hook to check weather password is modified
 HospitalSchema.pre("save", async function (next) {
   if (!this.isModified("password")) {
@@ -101,14 +117,11 @@ HospitalSchema.methods.pushToMorning = async function (session) {
   const morningSessions = this.activeSession.sessions[0].morning;
   console.log(morningSessions);
   if (morningSessions.length >= 10) {
-    throw new Error('Exceeded 10 sessions for morning on this date');
+    throw new Error("Exceeded 10 sessions for morning on this date");
   }
   morningSessions.push(session);
   await this.save();
 };
-
-
-
 
 HospitalSchema.methods.pushToEvening = async function (session) {
   if (!this.activeSession || this.activeSession.length === 0) {
@@ -116,7 +129,7 @@ HospitalSchema.methods.pushToEvening = async function (session) {
   }
   const eveningSessions = this.activeSession.sessions[0].evening;
   if (eveningSessions.length >= 10) {
-    const error = new Error('Exceeded 10 sessions for evening');
+    const error = new Error("Exceeded 10 sessions for evening");
     error.statusCode = 400;
     throw error;
   }
@@ -124,7 +137,4 @@ HospitalSchema.methods.pushToEvening = async function (session) {
   await this.save();
 };
 
-
-
 module.exports = mongoose.model("Hospital", HospitalSchema);
-

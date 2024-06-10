@@ -20,7 +20,7 @@ const SlotSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "Booking",
     default: null
-  }
+  },  _id: false
 });
 
 const BookingSchema = new mongoose.Schema({
@@ -28,6 +28,7 @@ const BookingSchema = new mongoose.Schema({
     type: [SlotSchema],
     validate: [arrayLimit, 'Exceeds the limit of 20 bookings for morning']
   },
+  
   evening: {
     type: [SlotSchema],
     validate: [arrayLimit, 'Exceeds the limit of 20 bookings for evening']
@@ -64,11 +65,13 @@ const DoctorSchema = new mongoose.Schema({
   timings: {
     morning: {
       type: [SessionSchema],
-      required: true
+      _id: false
+      
     },
     evening: {
       type: [SessionSchema],
-      required: true
+      _id: false
+      // required: true
     }
   },
   slotTimings: {

@@ -44,6 +44,10 @@ const bookingSchema = new mongoose.Schema({
   time: {
     type: String,
     required: true,
+  },
+  bookingId:{
+    type:Number,
+    required:true
   }
 }, {
   timestamps: true
