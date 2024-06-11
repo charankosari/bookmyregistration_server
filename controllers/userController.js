@@ -216,14 +216,37 @@ exports.deleteUser = asyncHandler(async (req, res, next) => {
 exports.wishListDoctor = asyncHandler(async (req, res, next) => {
   const DoctorId = req.params.id;
   const userId = req.user.id;
+
+  console.log('DoctorId:', DoctorId);
+  console.log('userId:', userId);
+
   const user = await User.findById(userId);
   if (!user) {
     return res.status(404).json({ success: false, message: "User not found" });
   }
+
   let wishList = user.wishList || [];
+  console.log('Initial wishlist:', wishList);
+
+  // Filter out invalid items that do not have a Doctor property
+  wishList = wishList.filter(item => item.Doctor);
+  
+  // Log each item in the wishlist for debugging
+  wishList.forEach((item, index) => {
+    console.log(`Item ${index}:`, item);
+    if (item.Doctor) {
+      console.log(`Item ${index} Doctor ID:`, item.Doctor.toString());
+    } else {
+      console.log(`Item ${index} has no Doctor property`);
+    }
+  });
+
   const itemExist = wishList.find(
     (item) => item.Doctor.toString() === DoctorId
   );
+
+  console.log('itemExist:', itemExist);
+
   if (itemExist) {
     wishList = wishList.filter((item) => item.Doctor.toString() !== DoctorId);
     user.wishList = wishList;
@@ -235,9 +258,13 @@ exports.wishListDoctor = asyncHandler(async (req, res, next) => {
         message: "Doctor removed from Wishlist successfully",
       });
   }
+
   wishList.push({ Doctor: DoctorId });
   user.wishList = wishList;
   await user.save({ validateBeforeSave: false });
+
+  console.log('Updated wishlist:', wishList);
+
   return res
     .status(200)
     .json({ success: true, message: "Doctor wishlisted successfully" });
