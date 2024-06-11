@@ -173,6 +173,14 @@ exports.getUser = asyncHandler(async (req, res, next) => {
   const user = await User.findById(req.params.id);
   res.status(200).json({ success: true, user });
 });
+///get single doctor by id
+exports.getDoctor = asyncHandler(async (req, res, next) => {
+  const doc = await Doctor.findById(req.params.id).select("_id name experience study specialist hospitalid bookingsids timings");
+  if (!doc) {
+    return res.status(404).json({ success: false, message: "Doctor not found" });
+  }
+  res.status(200).json({ success: true, doctor: doc });
+});
 
 // update user role ---admin
 exports.updateUserRole = asyncHandler(async (req, res, next) => {
@@ -418,21 +426,7 @@ exports.getBookingDetails = asyncHandler(async (req, res, next) => {
     res.status(500).json({ message: "Internal server error" });
   }
 });
-//user doctors rendering
-// exports.getDoctorDetails = asyncHandler(async (req, res, next) => {
-//   try {
-//     const hospitalId = req.params.id;
-//     console.log(hospitalId)
-//     const hospital = await Hospital.findById(hospitalId);
-//     if (!hospital) {
-//       return res.status(404).json({ error: "Hospital not found" });
-//     }
-//     return res.status(200).json(hospital);
-//   } catch (err) {
-//     console.error(err);
-//     return res.status(500).json({ error: "Internal server error" });
-//   }
-// });
+
 
 exports.getDoctorDetails = asyncHandler(async (req, res, next) => {
   try {
