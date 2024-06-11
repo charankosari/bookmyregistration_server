@@ -26,7 +26,7 @@ router.route('/doctor/booking/:bookingId').get( getUserDetailsByBookingId);
 
 router.route("/admin/getalldoctors").get(getAllDoctors)
 router.route("/admin/getallhospitals").get(getAllHospitals)
-router.route("/admin/getallhospitals").get(getHosptial)
+router.route("/hospital/:id").get(getHosptial)
 // router.route("/admin/user/:id").get(isAuthorized,roleAuthorize("admin"),getUser)
 // .put(isAuthorized,roleAuthorize("admin"),updateUserRole).delete(isAuthorized,roleAuthorize("admin"),deleteUser)
 module.exports=router
