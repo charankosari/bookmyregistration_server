@@ -424,7 +424,7 @@ exports.getBookingDetails = asyncHandler(async (req, res, next) => {
       booking: {
         _id: booking._id,
         name: booking.name,
-        bookind_id:bookingId,
+        id:booking.bookingId,
         userid: booking.userid,
         phonenumber: booking.phonenumber,
         email: booking.email,
@@ -514,6 +514,7 @@ exports.getUserBookingDetails = asyncHandler(async (req, res, next) => {
         booking: {
           _id: booking._id,
           name: booking.name,
+          id:booking.bookingId,
           userid: booking.userid,
           phonenumber: booking.phonenumber,
           email: booking.email,
