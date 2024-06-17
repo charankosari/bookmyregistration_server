@@ -46,6 +46,27 @@ const userSchema = new mongoose.Schema({
       }, _id: false
     }
   ],
+  coupon: {
+    type: String,
+    default: "firstuser",
+  },
+  firstuser: {
+    type: Boolean,
+    default: false,
+  },
+  files: [
+    {
+      name: {
+        type: String,
+        required: true,
+      },
+      location: {
+        type: String,
+        required: true,
+      },
+      _id: false,
+    },
+  ],
   role:{
     type: String,
     default:"user",
@@ -74,6 +95,13 @@ userSchema.methods.comparePassword = async function (password) {
   console.log(password,this.password)
   return await bcrypt.compare(password, this.password);
   
+};
+//file adding
+userSchema.methods.addFile = function (name, location) {
+  if (this.files.length >= 10) {
+    throw new Error("Files array cannot exceed 10 elements");
+  }
+  this.files.push({ name, location });
 };
 
 userSchema.methods.resetToken= function(){

@@ -12,6 +12,10 @@ const sendEmail = require("../utils/sendEmail");
 const { config } = require("dotenv");
 const crypto = require("crypto");
 const fs = require("fs");
+const aws = require('aws-sdk');
+
+const multer = require('multer');
+const path = require('path');
 const otpStore = new Map();
 const renflair_url =
   "https://sms.renflair.in/V1.php?API=c850371fda6892fbfd1c5a5b457e5777";
@@ -85,7 +89,7 @@ exports.sendOtp = asyncHandler(async (req, res, next) => {
 
     const user = await User.findOne({ number });
     if (!user) {
-      return next(new errorHandler("User not found", 404));
+      return next(new errorHandler("Please check your number  or Create an account", 404));
     }
 
     const otp = generateOtp();
@@ -550,3 +554,123 @@ exports.getUserBookingDetails = asyncHandler(async (req, res, next) => {
     res.status(500).json({ message: "Internal server error" });
   }
 });
+
+
+//uploading,getting,deletingfile,downloading a file to s3 bucket
+const uploadDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+aws.config.update({
+    secretAccessKey: process.env.ACCESS_SECRET,
+    accessKeyId: process.env.ACCESS_KEY,
+    region: process.env.REGION,
+});
+
+const BUCKET = process.env.BUCKET;
+const s3 = new aws.S3();
+
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, uploadDir);
+    },
+    filename: function (req, file, cb) {
+        cb(null, Date.now() + '-' + file.originalname);
+    }
+});
+const upload = multer({ storage: storage });
+exports.addFile = async (req, res, next) => {
+  upload.single('file')(req, res, async (err) => {
+      if (err) {
+          return res.status(500).send('File upload failed');
+      }
+      if (!req.file) {
+          return res.status(400).send('No file uploaded.');
+      }
+      const filePath = path.join(uploadDir, req.file.filename);
+      fs.readFile(filePath, async (err, fileContent) => {
+          if (err) {
+              console.error('Read file error:', err);
+              return res.status(500).send('Failed to read file');
+          }
+          const params = {
+              Bucket: BUCKET,
+              Key: req.file.filename,
+              Body: fileContent,
+              ACL: 'public-read'
+          };
+
+          s3.upload(params, async (err, data) => {
+              fs.unlink(filePath, (unlinkErr) => {
+                  if (unlinkErr) {
+                      console.error('Cleanup error:', unlinkErr);
+                  }
+              });
+              if (err) {
+                  console.error('Upload error:', err);
+                  return res.status(500).send('Failed to upload file');
+              }
+              try {
+                  const user = await User.findById(req.user.id);
+                  if (!user) {
+                      return res.status(404).send('User not found');
+                  }
+                  user.addFile(req.file.filename, data.Location);
+                  await user.save();
+                  res.status(200).json({message:"File uploaded and saved Successfully",
+                    success: true,
+                    location: data.Location,
+                  });
+              } catch (dbErr) {
+                  console.error('Database error:', dbErr);
+                  res.status(500).json({
+                    success: false,
+                    message:'Exceeded the limit to upload files,please delete earlier files to upload.'
+                  });
+              }
+          });
+      });
+  });
+};
+
+exports.deleteFile = async (req, res, next) => {
+  const filename = req.params.filename;
+  const userId = req.user.id; 
+  try {
+      await s3.deleteObject({ Bucket: BUCKET, Key: filename }).promise();
+      const user = await User.findById(userId);
+      if (!user) {
+          return res.status(404).send('User not found');
+      }
+      user.files = user.files.filter(file => file.name !== filename);
+      await user.save();
+      res.status(200).json({message:"File deleted successfully",
+        success: true,
+      });
+  } catch (err) {
+      res.status(500).json({
+        success: false,
+        message:"Failed to delete files"
+      });
+  }
+};
+exports.getFiles = async (req, res, next) => {
+  const userId = req.user.id;
+  try {
+      const user = await User.findById(userId).select('files'); 
+      if (!user) {
+          return res.status(404).send('User not found');
+      }
+      res.status(200).json({
+        success: true,
+        files:user ,
+      });
+  } catch (err) {
+      console.error('Get files error:', err);
+      res.status(500).json({
+        success: false,
+        message:"Failed to get files"
+      });
+  }
+};

@@ -1,6 +1,6 @@
 const express=require('express')
 const router=express.Router()
-const {register,sendOtp,verifyOtp, verifyRegisterOtp,getUserBookingDetails,getDoctorDetails,bookAppointment,getBookingDetails,getDoctor,userDetails,profileUpdate, getAllUsers,getUser,updateUserRole,deleteUser,getWishlist,wishListDoctor,RemovewishListProduct,AddCartItem,RemoveCartItem,getCartDetails,updateCartItem,deleteCart,deleteWishlist} =require("../controllers/userController")
+const {register,sendOtp,verifyOtp, verifyRegisterOtp,getUserBookingDetails,getDoctorDetails,bookAppointment,getBookingDetails,getDoctor,userDetails,profileUpdate, getAllUsers,getUser,updateUserRole,deleteUser,getWishlist,wishListDoctor,RemovewishListProduct,AddCartItem,RemoveCartItem,getCartDetails,updateCartItem,deleteCart,deleteWishlist, addFile, deleteFile, getFiles} =require("../controllers/userController")
 const {isAuthorized,roleAuthorize,}=require("../middleware/auth")
 
 // const {FileUpload} =require('../controllers/FileUpload')
@@ -21,6 +21,10 @@ router.route('/booking/:bookingId').get(isAuthorized, getBookingDetails);
 router.route('/allbookingdetails').get(isAuthorized, getUserBookingDetails);
 router.route('/user/doctors/:id').get( getDoctorDetails);
 router.route('/doc/:id').get( getDoctor);
+router.route('/upload').post(isAuthorized,addFile);
+router.route("/delete/:filename").delete(isAuthorized,deleteFile)
+router.route("/getfiles").get(isAuthorized,getFiles)
+// router.route("/download/:filename").post(isAuthorized)
 // router.route("/admin/getallusers").get(isAuthorized,roleAuthorize("admin"),getAllUsers)
 // router.route("/admin/user/:id").get(isAuthorized,roleAuthorize("admin"),getUser)
 router.route("admin/deleteuser").put(isAuthorized,roleAuthorize("admin"),updateUserRole).delete(isAuthorized,roleAuthorize("admin"),deleteUser)
