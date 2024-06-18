@@ -1,6 +1,6 @@
 const express=require('express')
 const router=express.Router()
-const {register,sendOtp,verifyOtp, verifyRegisterOtp,getUserBookingDetails,numberUpdate,getDoctorDetails,bookAppointment,getBookingDetails,getDoctor,userDetails,profileUpdate, getAllUsers,getUser,updateUserRole,deleteUser,getWishlist,wishListDoctor,RemovewishListProduct,AddCartItem,RemoveCartItem,getCartDetails,updateCartItem,deleteCart,deleteWishlist, addFile, deleteFile, getFiles} =require("../controllers/userController")
+const {register,sendOtp,verifyOtp, verifyRegisterOtp,sendOtpVerify,getUserBookingDetails,numberUpdate,getDoctorDetails,bookAppointment,getBookingDetails,getDoctor,userDetails,profileUpdate, getAllUsers,getUser,updateUserRole,deleteUser,getWishlist,wishListDoctor,RemovewishListProduct,AddCartItem,RemoveCartItem,getCartDetails,updateCartItem,deleteCart,deleteWishlist, addFile, deleteFile, getFiles} =require("../controllers/userController")
 const {isAuthorized,roleAuthorize,}=require("../middleware/auth")
 
 // const {FileUpload} =require('../controllers/FileUpload')
@@ -8,6 +8,7 @@ router.route("/register").post(register)
 
 router.route("/verifyregisterotp").post(verifyRegisterOtp)
 router.route("/login").post(sendOtp)
+router.route("/verifynumber").post(isAuthorized,sendOtpVerify)
 // router.route("/fileupload").post(FileUpload)
 router.post('/verifyotp', verifyOtp);
 // router.route("/forgotpassword").post(forgotPassword)

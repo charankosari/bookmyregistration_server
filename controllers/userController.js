@@ -109,6 +109,35 @@ exports.sendOtp = asyncHandler(async (req, res, next) => {
     res.status(500).json({ message: "Internal server error" });
   }
 });
+
+
+exports.sendOtpVerify = asyncHandler(async (req, res, next) => {
+  const userid=req.user.id;
+  const generateOtp = () => Math.floor(1000 + Math.random() * 9000);
+  try {
+    const { number } = req.body;
+   
+
+    const user = await User.findById( userid);
+    if (!user) {
+      return next(new errorHandler("Please check your number  or Create an account", 404));
+    }
+    const otp = generateOtp();
+    const ttl = 10 * 60 * 1000; // OTP valid for 10 minutes
+    otpStore.set(user._id.toString(), otp);
+
+    setTimeout(() => otpStore.delete(user._id.toString()), ttl);
+
+    const url = `${renflair_url}&PHONE=${number}&OTP=${otp}`;
+    await axios.post(url);
+    res
+      .status(200)
+      .json({ message: "OTP sent successfully", userid: user._id });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
 exports.verifyOtp = asyncHandler(async (req, res, next) => {
   try {
     const { otp, userid } = req.body;
