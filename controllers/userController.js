@@ -82,7 +82,6 @@ exports.sendOtp = asyncHandler(async (req, res, next) => {
   const generateOtp = () => Math.floor(1000 + Math.random() * 9000);
   try {
     const { number } = req.body;
-
     if (!number) {
       return next(new errorHandler("Enter a valid 10 digit phone number", 400));
     }
@@ -153,11 +152,10 @@ exports.userDetails = asyncHandler(async (req, res, next) => {
 
 //profile update
 exports.profileUpdate = asyncHandler(async (req, res, next) => {
-  const { name, email, number } = req.body;
+  const { name, email } = req.body;
   const user = await User.findById(req.user.id);
   user.name = name || user.name;
   user.email = email || user.email;
-  user.number = number || user.number;
   try {
     await user.save();
     res.status(200).json({ success: true, user });
@@ -165,7 +163,33 @@ exports.profileUpdate = asyncHandler(async (req, res, next) => {
     return next(new errorHandler("Failed to update profile.", 500));
   }
 });
-
+// number update 
+exports.numberUpdate = asyncHandler(async (req, res, next) => {
+  try {
+    const { otp, userid, number } = req.body;
+    if (!otp || !userid) {
+      return next(new errorHandler("OTP and UserID are required", 400));
+    }
+    const storedOtp = otpStore.get(userid);
+    if (!storedOtp) {
+      return next(new errorHandler("OTP expired or user ID not found", 400));
+    }
+    if (otp !== storedOtp) {
+      return next(new errorHandler("Invalid OTP", 400));
+    }
+    otpStore.delete(userid);
+    const user = await User.findById(userid);
+    if (!user) {
+      return next(new errorHandler("User not found", 404));
+    }
+    user.number = number || user.number;
+    await user.save();
+    res.status(200).json({ success: true, user });
+  } catch (error) {
+    console.error("Error during number update:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
 // get all users---admin
 exports.getAllUsers = asyncHandler(async (req, res, next) => {
   const users = await User.find();

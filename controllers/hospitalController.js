@@ -2,6 +2,7 @@ const asyncHandler = require("../middleware/asynchandler");
 const errorHandler = require("../utils/errorHandler");
 const Hospital = require("../models/HospitalsModel");
 const Doctor = require("../models/DoctorsModel");
+const Test = require("../models/labModel");
 const Booking=require("../models/BookingModel")
 const User=require("../models/userModel")
 const sendJwt = require("../utils/jwttokensendHosp");
@@ -19,7 +20,7 @@ config({ path: "config/config.env" });
 exports.register = asyncHandler(async (req, res, next) => {
   const generateOtp = () => Math.floor(1000 + Math.random() * 9000);
   try {
-    const { hospitalName, address,image, email, number } = req.body;
+    const { hospitalName, address,image, email, number,role } = req.body;
     let hosp = await Hospital.findOne({ email });
   let hosp2 = await Hospital.findOne({ hospitalName });
   let hosp3 = await Hospital.findOne({ number });
@@ -28,7 +29,7 @@ exports.register = asyncHandler(async (req, res, next) => {
   }
     const otp = generateOtp();
     const ttl = 10 * 60 * 1000; // OTP valid for 10 minutes
-    otpStore.set(number, { otp, hospitalName,address, email,image });
+    otpStore.set(number, { otp, hospitalName,address, email,image,role });
     setTimeout(() => {
       otpStore.delete(number);
     }, ttl);
@@ -52,13 +53,13 @@ exports.verifyRegisterOtp = asyncHandler(async (req, res, next) => {
     if (!storedData) {
       return next(new errorHandler("OTP expired or phone number not found", 400));
     }
-    const { otp: storedOtp, hospitalName,address, email,image } = storedData;
+    const { otp: storedOtp, hospitalName,address, email,image,role } = storedData;
 
     if (otp !== storedOtp) {
       return next(new errorHandler("Invalid OTP", 400));
     }
     let hosp = await Hospital.create({
-      hospitalName,address, email,number,image
+      hospitalName,address, email,number,image,role
     });
 
     otpStore.delete(number);
@@ -414,4 +415,122 @@ exports.getUserDetailsByBookingId = asyncHandler(async (req, res, next) => {
     console.error(error);
     res.status(500).json({ message: 'Internal server error' });
   }
+});
+
+
+//adding a test
+
+exports.addTest = asyncHandler(async (req, res, next) => {
+  try {
+    const { name, timings, slotTimings, noOfDays } = req.body;
+    const hospitalid = req.hosp.id;
+    const hospital = await Hospital.findById(hospitalid);
+
+    if (!hospital) {
+      return res.status(404).json({ message: "Hospital not found" });
+    }
+
+    const hospitalCode = hospital.hospitalName.slice(0, 2).toUpperCase();
+    const testCodePart = getRandomLetters(name, 4);
+    const testCode = hospitalCode + testCodePart;
+
+    const test = new Test({
+      name,
+      hospitalid,
+      timings,
+      slotTimings,
+      noOfDays,
+      code: testCode
+    });
+   
+    const startDate = new Date();
+    for (let i = 0; i < noOfDays; i++) {
+      const currentDate = new Date(startDate);
+      currentDate.setDate(startDate.getDate() + i);
+      const dateStr = currentDate.toISOString().split('T')[0];
+      const morningSlots = generateTimeSlots(timings.morning, slotTimings);
+      const eveningSlots = generateTimeSlots(timings.evening, slotTimings);
+      test.bookingsids.set(dateStr, { morning: morningSlots, evening: eveningSlots });
+    }  
+    if (!hospital.category.find(cat => cat.types === name)) {
+      hospital.category.push({ types: name });
+    }
+    await hospital.save();
+    const savedTest = await test.save();
+    hospital.tests.push({ testid: savedTest._id });
+    await hospital.save();
+
+    res.status(201).json(savedTest);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+//add slots for test
+
+
+exports.addMoreTestSessions = async (req, res, next) => {
+  try {
+    const { testId,date, noOfDays, slotTimings, morning, evening } = req.body;
+    
+
+    const test = await Test.findById(testId);
+
+    if (!test) {
+      return res.status(404).json({ message: 'test not found' });
+    }
+
+    const startDate = new Date(date);
+    for (let i = 0; i < noOfDays; i++) {
+      const currentDate = new Date(startDate);
+      currentDate.setDate(startDate.getDate() + i);
+      const dateStr = currentDate.toISOString().split('T')[0];
+
+      const morningSlots = generateTimeSlotss(morning.startTime, morning.endTime, slotTimings);
+      const eveningSlots = generateTimeSlotss(evening.startTime, evening.endTime, slotTimings);
+
+      if (!test.bookingsids.has(dateStr)) {
+        test.bookingsids.set(dateStr, { morning: [], evening: [] });
+      }
+
+      const daySchedule = test.bookingsids.get(dateStr);
+
+      morningSlots.forEach(slot => {
+        if (!daySchedule.morning.some(existingSlot => existingSlot.time === slot.time)) {
+          daySchedule.morning.push(slot);
+        }
+      });
+
+      eveningSlots.forEach(slot => {
+        if (!daySchedule.evening.some(existingSlot => existingSlot.time === slot.time)) {
+          daySchedule.evening.push(slot);
+        }
+      });
+    }
+
+    await test.save();
+
+    res.status(201).json({ message: 'Sessions added successfully', test });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+//delete test by id
+
+exports.deleteTestById = asyncHandler(async (req, res, next) => {
+  const testId = req.params.id;
+  const hospitalId = req.hosp.id;
+  const hospital = await Hospital.findById(hospitalId);
+  if (!hospital) {
+    return res.status(404).json({ success: false, message: "Hospital not found" });
+  }
+  hospital.tests = hospital.tests.filter(test => test.testid.toString() !== testId);
+  await hospital.save();
+  const deletedTest = await Test.findByIdAndDelete(testId);
+  if (!deletedTest) {
+    return res.status(404).json({ success: false, message: "Test not found" });
+  }
+  res.status(200).json({ success: true, message: "Test deleted successfully" });
 });

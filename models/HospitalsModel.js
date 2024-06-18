@@ -20,6 +20,15 @@ const HospitalSchema = new mongoose.Schema({
       _id: false
     }
   ],
+  tests: [
+    {
+      testid: {
+        type: mongoose.Schema.ObjectId,
+        ref: "tests",
+      },
+      _id: false
+    }
+  ],
   email: {
     type: String,
     required: [true, "Please Enter User Email"],
@@ -45,6 +54,7 @@ const HospitalSchema = new mongoose.Schema({
       _id: false
     }
   ],
+  
   address: [
     {
       hospitalAddress: {
@@ -75,6 +85,7 @@ const HospitalSchema = new mongoose.Schema({
     type: String,
     default: "hospital",
   },
+
   image: {
     type: [String],
     _id: false
