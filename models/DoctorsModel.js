@@ -57,6 +57,10 @@ const DoctorSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  // price:{
+  //   type:Number,
+  //   required:true
+  // },
   code: {
     type: String,
     unique: true,
