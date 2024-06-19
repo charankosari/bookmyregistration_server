@@ -13,7 +13,7 @@ const { config } = require("dotenv");
 const crypto = require("crypto");
 const fs = require("fs");
 const aws = require('aws-sdk');
-
+const Labs = require('../models/labModel')
 const multer = require('multer');
 const path = require('path');
 const otpStore = new Map();
@@ -237,6 +237,13 @@ exports.getDoctor = asyncHandler(async (req, res, next) => {
     return res.status(404).json({ success: false, message: "Doctor not found" });
   }
   res.status(200).json({ success: true, doctor: doc });
+});
+exports.getTests = asyncHandler(async (req, res, next) => {
+  const test = await Labs.findById(req.params.id).select("_id name experience study  hospitalid bookingsids timings");
+  if (!test) {
+    return res.status(404).json({ success: false, message: "Test not found" });
+  }
+  res.status(200).json({ success: true, test: test });
 });
 
 // update user role ---admin
