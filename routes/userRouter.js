@@ -1,6 +1,6 @@
 const express=require('express')
 const router=express.Router()
-const {register,sendOtp,verifyOtp, verifyRegisterOtp,getLabDetails,toggleWishlistItem,sendOtpVerify,getTests ,getUserBookingDetails,numberUpdate,getDoctorDetails,bookAppointment,getBookingDetails,getDoctor,userDetails,profileUpdate, getAllUsers,getUser,updateUserRole,deleteUser,getWishlist,wishListDoctor,RemovewishListProduct,AddCartItem,RemoveCartItem,getCartDetails,updateCartItem,deleteCart,deleteWishlist, addFile, deleteFile, getFiles} =require("../controllers/userController")
+const {register,sendOtp,verifyOtp, verifyRegisterOtp,getLabDetails,bookAppointmentLab,toggleWishlistItem,sendOtpVerify,getTests ,getUserBookingDetails,numberUpdate,getDoctorDetails,bookAppointment,getBookingDetails,getDoctor,userDetails,profileUpdate, getAllUsers,getUser,updateUserRole,deleteUser,getWishlist,wishListDoctor,RemovewishListProduct,AddCartItem,RemoveCartItem,getCartDetails,updateCartItem,deleteCart,deleteWishlist, addFile, deleteFile, getFiles} =require("../controllers/userController")
 const {isAuthorized,roleAuthorize,}=require("../middleware/auth")
 
 // const {FileUpload} =require('../controllers/FileUpload')
@@ -19,6 +19,7 @@ router.route("/me").get(isAuthorized,userDetails)
 router.route("/me/profileupdate").put(isAuthorized,profileUpdate)
 router.route("/me/numberupdate").put(isAuthorized,numberUpdate)
 router.route("/addbooking").post(isAuthorized,bookAppointment)
+router.route("/addlabbooking").post(isAuthorized,bookAppointmentLab)
 router.route('/booking/:bookingId').get(isAuthorized, getBookingDetails);
 router.route('/allbookingdetails').get(isAuthorized, getUserBookingDetails);
 router.route('/user/doctors/:id').get( getDoctorDetails);

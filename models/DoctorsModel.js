@@ -63,6 +63,7 @@ const DoctorSchema = new mongoose.Schema({
     minlength: [6, "Code should be exactly 6 characters"],
     maxlength: [6, "Code should be exactly 6 characters"]
   },
+ 
   timings: {
     morning: {
       type: [SessionSchema],

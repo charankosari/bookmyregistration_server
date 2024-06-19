@@ -276,94 +276,6 @@ exports.deleteUser = asyncHandler(async (req, res, next) => {
   res.status(200).json({ success: true, message: "user deleted successfully" });
 });
 
-//add and remove whishlist doctor________________________________________________________________________
-// exports.wishListDoctor = asyncHandler(async (req, res, next) => {
-//   const DoctorId = req.params.id;
-//   const userId = req.user.id;
-
-//   console.log('DoctorId:', DoctorId);
-//   console.log('userId:', userId);
-
-//   const user = await User.findById(userId);
-//   if (!user) {
-//     return res.status(404).json({ success: false, message: "User not found" });
-//   }
-
-//   let wishList = user.wishList || [];
-//   console.log('Initial wishlist:', wishList);
-
-//   // Filter out invalid items that do not have a Doctor property
-//   wishList = wishList.filter(item => item.Doctor);
-  
-//   // Log each item in the wishlist for debugging
-//   wishList.forEach((item, index) => {
-//     console.log(`Item ${index}:`, item);
-//     if (item.Doctor) {
-//       console.log(`Item ${index} Doctor ID:`, item.Doctor.toString());
-//     } else {
-//       console.log(`Item ${index} has no Doctor property`);
-//     }
-//   });
-
-//   const itemExist = wishList.find(
-//     (item) => item.Doctor.toString() === DoctorId
-//   );
-
-//   console.log('itemExist:', itemExist);
-
-//   if (itemExist) {
-//     wishList = wishList.filter((item) => item.Doctor.toString() !== DoctorId);
-//     user.wishList = wishList;
-//     await user.save({ validateBeforeSave: false });
-//     return res
-//       .status(200)
-//       .json({
-//         success: true,
-//         message: "Doctor removed from Wishlist successfully",
-//       });
-//   }
-
-//   wishList.push({ Doctor: DoctorId });
-//   user.wishList = wishList;
-//   await user.save({ validateBeforeSave: false });
-
-//   console.log('Updated wishlist:', wishList);
-
-//   return res
-//     .status(200)
-//     .json({ success: true, message: "Doctor wishlisted successfully" });
-// });
-
-// // get all Wishlist details__________________
-// exports.getWishlist = asyncHandler(async (req, res, next) => {
-//   const userId = req.user.id;
-//   const user = await User.findById(userId).select("wishList").lean();
-//   if (!user) {
-//     return res.status(404).json({ success: false, message: "User not found" });
-//   }
-//   const doctorIds = user.wishList.map((item) => item.Doctor);
-
-//   // Find doctors with specific fields
-//   const wishlistData = await Doctor.find({ _id: { $in: doctorIds } })
-//     .select("name experience study specialist hospitalid")
-//     .lean();
-
-//   res
-//     .status(200)
-//     .json({ message: "Wishlist Data", success: true, data: wishlistData });
-// });
-
-// // empty the wishlist_______________________________________
-// exports.deleteWishlist = asyncHandler(async (req, res, next) => {
-//   const userId = req.user.id;
-//   const user = await User.findById(userId);
-//   user.wishList = [];
-//   user.save({ validateBeforeSave: false });
-//   res
-//     .status(200)
-//     .json({ success: true, message: "Wishlist is empty successfully" });
-// });
-
 //find available slots 
 const findAvailableSlot = async (doctorId, date, session, time) => {
   const doctor = await Doctor.findById(doctorId);
@@ -459,6 +371,97 @@ exports.bookAppointment = asyncHandler(async (req, res, next) => {
     doctorSlot.bookingId = booking._id;
 
     await doctor.save();
+    const user = await User.findById(userId);
+    user.bookings.push({ bookingid: booking._id });
+    await user.save();
+    res.status(201).json({ message: "Booking successful", booking });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+//booking for lab test
+const findAvailableSlots = async (testId, date, session, time) => {
+  const test = await Labs.findById(testId);
+
+  if (!test) {
+    throw new Error("Doctor not found");
+  }
+
+  const dateString = date.toISOString().split("T")[0];
+  const slots = test.bookingsids.get(dateString)[session];
+
+  // Find the next available slot if the requested slot is not free
+  const slotIndex = slots.findIndex((slot) => slot.time === time);
+  for (let i = slotIndex; i < slots.length; i++) {
+    if (slots[i].bookingId === null) {
+      return slots[i];
+    }
+  }
+
+  return null;
+};
+exports.bookAppointmentLab = asyncHandler(async (req, res, next) => {
+  try {
+    const {
+      testId,
+      hospitalId,
+      date,
+      session,
+      time,
+      name,
+      phonenumber,
+      email,
+      amountpaid,
+    } = req.body;
+    const userId = req.user.id;
+
+    const test = await Labs.findById(testId);
+    if (!test) {
+      return res.status(404).json({ message: "Test not found" });
+    }
+    const bookingId = generateBookingId(phonenumber);
+    const booking = new Booking({
+      name,
+      userid: userId,
+      phonenumber,
+      email,
+      amountpaid,
+      testid:testId,
+      hospitalid: hospitalId,
+      date: new Date(date),
+      session,
+      time,
+      bookingId,
+    });
+
+    console.log("New Booking:", booking);
+
+    const availableSlot = await findAvailableSlots(
+      testId,
+      new Date(date),
+      session,
+      time
+    );
+
+    console.log("Available Slot:", availableSlot);
+
+    if (!availableSlot) {
+      return res.status(400).json({ message: "All slots are booked" });
+    }
+
+    booking.time = availableSlot.time; // Update booking time with the available slot
+
+    await booking.save();
+
+    const dateString = new Date(date).toISOString().split("T")[0];
+    const testSlot = test.bookingsids
+      .get(dateString)
+      [session].find((slot) => slot.time === booking.time);
+      testSlot.bookingId = booking._id;
+
+    await test.save();
     const user = await User.findById(userId);
     user.bookings.push({ bookingid: booking._id });
     await user.save();
@@ -577,7 +580,6 @@ exports.getDoctorDetails = asyncHandler(async (req, res, next) => {
 });
 
 //user booking details all_________________________________________
-
 exports.getUserBookingDetails = asyncHandler(async (req, res, next) => {
   try {
     const userId = req.user.id;
@@ -595,10 +597,8 @@ exports.getUserBookingDetails = asyncHandler(async (req, res, next) => {
     const bookingDetails = [];
 
     for (const booking of bookings) {
-      const doctor = await Doctor.findById(booking.doctorid);
       const hospital = await Hospital.findById(booking.hospitalid);
-
-      if (!doctor || !hospital) {
+      if (!hospital) {
         continue;
       }
 
@@ -606,7 +606,7 @@ exports.getUserBookingDetails = asyncHandler(async (req, res, next) => {
         booking: {
           _id: booking._id,
           name: booking.name,
-          id:booking.bookingId,
+          id: booking.bookingId,
           userid: booking.userid,
           phonenumber: booking.phonenumber,
           email: booking.email,
@@ -614,13 +614,6 @@ exports.getUserBookingDetails = asyncHandler(async (req, res, next) => {
           date: booking.date,
           session: booking.session,
           time: booking.time,
-        },
-        doctor: {
-          _id: doctor._id,
-          name: doctor.name,
-          experience: doctor.experience,
-          study: doctor.study,
-          specialist: doctor.specialist,
         },
         hospital: {
           _id: hospital._id,
@@ -630,12 +623,33 @@ exports.getUserBookingDetails = asyncHandler(async (req, res, next) => {
         },
       };
 
+      if (booking.doctorid) {
+        const doctor = await Doctor.findById(booking.doctorid);
+        if (doctor) {
+          detail.doctor = {
+            _id: doctor._id,
+            name: doctor.name,
+            experience: doctor.experience,
+            study: doctor.study,
+            specialist: doctor.specialist,
+          };
+        }
+      } else if (booking.testid) {
+        const test = await Labs.findById(booking.testid);
+        if (test) {
+          detail.test = {
+            _id: test._id,
+            name: test.name,
+          };
+        }
+      }
+
       bookingDetails.push(detail);
     }
 
     res.status(200).json({
       success: true,
-      bookingDetails: bookingDetails,
+      bookingDetails: bookingDetails.reverse(),
     });
   } catch (error) {
     console.error(error);

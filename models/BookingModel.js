@@ -25,7 +25,10 @@ const bookingSchema = new mongoose.Schema({
   doctorid: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Doctor',
-    required: true,
+  },
+  testid: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Test',
   },
   hospitalid: {
     type: mongoose.Schema.Types.ObjectId,
