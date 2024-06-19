@@ -519,7 +519,33 @@ exports.getBookingDetails = asyncHandler(async (req, res, next) => {
   }
 });
 
+//get labs details all
 
+exports.getLabDetails = asyncHandler(async (req, res, next) => {
+  try {
+    const hospitalId = req.params.id;
+    const hospital = await Hospital.findById(hospitalId);
+    if (!hospital) {
+      return res.status(404).json({ message: "Hospital not found" });
+    }
+    const testIds = hospital.tests.map(test => test.testid);
+    const fieldsToReturn = "_id name  timings slotTimings bookingsids  ";
+    const tests = await Labs.find({ _id: { $in: testIds } }).select(fieldsToReturn);
+
+    res.status(200).json({
+      success: true,
+      hospital: {
+        ...hospital._doc,
+        tests: tests
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+
+//get doctor details all
 exports.getDoctorDetails = asyncHandler(async (req, res, next) => {
   try {
     const hospitalId = req.params.id;
