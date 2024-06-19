@@ -30,13 +30,11 @@ const userSchema = new mongoose.Schema({
     required:true,
   },
 
-  wishList:[
+  wishList: [
     {
-      Doctor:{
-        type:mongoose.Schema.ObjectId,
-        ref:"Doctors"
-      }, _id: false
-    }
+      type: mongoose.Schema.Types.Mixed,
+      required: true,
+    },
   ],
   bookings:[
     {
