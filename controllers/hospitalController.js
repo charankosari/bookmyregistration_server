@@ -11,6 +11,7 @@ const crypto=require("crypto")
 const { config } = require("dotenv");
 const fs=require("fs");
 const axios=require("axios")
+const Labs = require('../models/labModel')
 
 const otpStore = new Map();
 const renflair_url='https://sms.renflair.in/V1.php?API=c850371fda6892fbfd1c5a5b457e5777'
@@ -345,6 +346,54 @@ exports.addMoreSessions = async (req, res, next) => {
     await doctor.save();
 
     res.status(201).json({ message: 'Sessions added successfully', doctor });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+//for tests
+exports.addMoreSessionsLabs = async (req, res, next) => {
+  try {
+    const { testId,date, noOfDays, slotTimings, morning, evening } = req.body;
+    
+
+    const test = await Labs.findById(testId);
+
+    if (!test) {
+      return res.status(404).json({ message: 'Test not found' });
+    }
+
+    const startDate = new Date(date);
+    for (let i = 0; i < noOfDays; i++) {
+      const currentDate = new Date(startDate);
+      currentDate.setDate(startDate.getDate() + i);
+      const dateStr = currentDate.toISOString().split('T')[0];
+
+      const morningSlots = generateTimeSlotss(morning.startTime, morning.endTime, slotTimings);
+      const eveningSlots = generateTimeSlotss(evening.startTime, evening.endTime, slotTimings);
+
+      if (!test.bookingsids.has(dateStr)) {
+        test.bookingsids.set(dateStr, { morning: [], evening: [] });
+      }
+
+      const daySchedule = test.bookingsids.get(dateStr);
+
+      morningSlots.forEach(slot => {
+        if (!daySchedule.morning.some(existingSlot => existingSlot.time === slot.time)) {
+          daySchedule.morning.push(slot);
+        }
+      });
+
+      eveningSlots.forEach(slot => {
+        if (!daySchedule.evening.some(existingSlot => existingSlot.time === slot.time)) {
+          daySchedule.evening.push(slot);
+        }
+      });
+    }
+
+    await test.save();
+
+    res.status(201).json({ message: 'Sessions added successfully', test });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Internal server error' });
