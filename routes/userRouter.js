@@ -1,6 +1,6 @@
 const express=require('express')
 const router=express.Router()
-const {register,sendOtp,verifyOtp, verifyRegisterOtp,getLabDetails,bookAppointmentLab,toggleWishlistItem,sendOtpVerify,getTests ,getUserBookingDetails,numberUpdate,getDoctorDetails,bookAppointment,getBookingDetails,getDoctor,userDetails,profileUpdate, getAllUsers,getUser,updateUserRole,deleteUser,getWishlist,wishListDoctor,RemovewishListProduct,AddCartItem,RemoveCartItem,getCartDetails,updateCartItem,deleteCart,deleteWishlist, addFile, deleteFile, getFiles} =require("../controllers/userController")
+const {register,sendOtp,verifyOtp, verifyRegisterOtp,getLabDetails,bookAppointmentLab,toggleWishlistItem,sendOtpVerify,getTests ,getUserBookingDetails,numberUpdate,getDoctorDetails,bookAppointment,getBookingDetails,getDoctor,userDetails,profileUpdate, getAllUsers,getUser,updateUserRole,deleteUser,getWishlist,wishListDoctor,RemovewishListProduct,AddCartItem,RemoveCartItem,getCartDetails,updateCartItem,deleteCart,deleteWishlist, addFile, deleteFile, getFiles, downloadFile, getFilesBinary} =require("../controllers/userController")
 const {isAuthorized,roleAuthorize,}=require("../middleware/auth")
 
 // const {FileUpload} =require('../controllers/FileUpload')
@@ -28,6 +28,8 @@ router.route('/doc/:id').get( getDoctor);
 router.route('/tests/:id').get( getTests);
 router.route('/upload').post(isAuthorized,addFile);
 router.route("/delete/:filename").delete(isAuthorized,deleteFile)
+router.route("/download/:filename").get(isAuthorized,downloadFile)
+router.route('/downloadb/').get(isAuthorized,getFilesBinary)
 router.route("/getfiles").get(isAuthorized,getFiles)
 // router.route("/download/:filename").post(isAuthorized)
 // router.route("/admin/getallusers").get(isAuthorized,roleAuthorize("admin"),getAllUsers)

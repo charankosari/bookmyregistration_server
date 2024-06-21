@@ -868,3 +868,34 @@ exports.deleteWishlist = asyncHandler(async (req, res, next) => {
   await user.save({ validateBeforeSave: false });
   res.status(200).json({ success: true, message: "Wishlist is empty successfully" });
 });
+
+
+exports.downloadFile = asyncHandler(async (req, res, next) => {
+  const filename = req.params.filename;
+  console.log(`Downloading file: ${filename}`); // Logging filename
+  try {
+      let fileInfo = await s3.getObject({ Bucket: BUCKET, Key: filename }).promise();
+      console.log('File info retrieved:', fileInfo); 
+
+      const fileLocation = s3.getSignedUrl('getObject', {
+          Bucket: BUCKET,
+          Key: filename,
+          Expires: 10000
+      });
+      console.log('Generated signed URL:', fileLocation); 
+
+      res.json({
+          Location: fileLocation
+      });
+  } catch (err) {
+      console.error('Download error:', err);
+      res.status(500).send('Failed to download file');
+  }
+});
+
+
+exports.getFilesBinary = asyncHandler(async (req, res, next) => {
+  const url = req.body.url;
+  const response = await axios.get(url);
+  res.json(response.data);
+});
