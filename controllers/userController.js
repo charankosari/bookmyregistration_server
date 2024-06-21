@@ -895,7 +895,22 @@ exports.downloadFile = asyncHandler(async (req, res, next) => {
 
 
 exports.getFilesBinary = asyncHandler(async (req, res, next) => {
-  const url = req.body.url;
-  const response = await axios.get(url);
-  res.json(response.data);
+  const url = req.query.url;
+  
+  if (!url) {
+    return res.status(400).json({ error: 'URL parameter is required' });
+  }
+
+  try {
+    const response = await axios.get(url, { responseType: 'arraybuffer' });
+
+    const blobData = Buffer.from(response.data, 'binary'); // Convert to Buffer
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'inline; filename="downloaded.pdf"');
+    res.send(blobData);
+  } catch (error) {
+    console.error('Error fetching or serving PDF:', error);
+    res.status(500).json({ error: 'Failed to fetch or serve PDF' });
+  }
 });

@@ -29,7 +29,7 @@ router.route('/tests/:id').get( getTests);
 router.route('/upload').post(isAuthorized,addFile);
 router.route("/delete/:filename").delete(isAuthorized,deleteFile)
 router.route("/download/:filename").get(isAuthorized,downloadFile)
-router.route('/downloadb/').get(isAuthorized,getFilesBinary)
+router.route('/downloadb').get(getFilesBinary)
 router.route("/getfiles").get(isAuthorized,getFiles)
 // router.route("/download/:filename").post(isAuthorized)
 // router.route("/admin/getallusers").get(isAuthorized,roleAuthorize("admin"),getAllUsers)
