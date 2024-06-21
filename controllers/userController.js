@@ -232,14 +232,14 @@ exports.getUser = asyncHandler(async (req, res, next) => {
 });
 ///get single doctor by id
 exports.getDoctor = asyncHandler(async (req, res, next) => {
-  const doc = await Doctor.findById(req.params.id).select("_id name experience study specialist hospitalid bookingsids timings");
+  const doc = await Doctor.findById(req.params.id).select("_id name experience study specialist hospitalid bookingsids timings price");
   if (!doc) {
     return res.status(404).json({ success: false, message: "Doctor not found" });
   }
   res.status(200).json({ success: true, doctor: doc });
 });
 exports.getTests = asyncHandler(async (req, res, next) => {
-  const test = await Labs.findById(req.params.id).select("_id name experience study  hospitalid bookingsids timings");
+  const test = await Labs.findById(req.params.id).select("_id name experience study  hospitalid bookingsids timings price");
   if (!test) {
     return res.status(404).json({ success: false, message: "Test not found" });
   }
@@ -563,7 +563,7 @@ exports.getDoctorDetails = asyncHandler(async (req, res, next) => {
 
     const doctorIds = hospital.doctors.map(doc => doc.doctorid);
 
-    const fieldsToReturn = "_id name experience study specialist hospitalid bookingsids timings";
+    const fieldsToReturn = "_id name experience study specialist hospitalid bookingsids timings price";
 
     const doctors = await Doctor.find({ _id: { $in: doctorIds } }).select(fieldsToReturn);
 

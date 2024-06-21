@@ -23,6 +23,18 @@ const SlotSchema = new mongoose.Schema({
   },
   _id: false
 });
+const PriceSchema = new mongoose.Schema({
+  consultancyfee: {
+    type: Number,
+    required: true
+  },
+  servicefee: {
+    type: Number,
+    required: true
+  },
+  _id: false
+});
+
 
 const BookingSchema = new mongoose.Schema({
   morning: {
@@ -64,10 +76,10 @@ const testSchema = new mongoose.Schema({
     type: Number,
     required: true
   },
-  // price:{
-  //   type:Number,
-  //   required:true
-  // },
+  price: {
+    type: PriceSchema,
+    required: true
+  },
   noOfDays: {
     type: Number,
     required: true

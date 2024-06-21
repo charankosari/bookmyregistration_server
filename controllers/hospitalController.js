@@ -60,7 +60,7 @@ exports.verifyRegisterOtp = asyncHandler(async (req, res, next) => {
       return next(new errorHandler("Invalid OTP", 400));
     }
     let hosp = await Hospital.create({
-      hospitalName,address, email,number,image,role
+      hospitalName,address, email,number,image,role,price
     });
 
     otpStore.delete(number);
@@ -157,7 +157,7 @@ function generateTimeSlots(timings, slotDuration) {
 // Add doctor
 exports.addDoctor = asyncHandler(async (req, res, next) => {
   try {
-    const { name, experience, study, specialist, timings, slotTimings, noOfDays } = req.body;
+    const { name, experience, study, specialist, timings, slotTimings, noOfDays,price } = req.body;
     const hospitalid = req.hosp.id;
     const hospital = await Hospital.findById(hospitalid);
 
@@ -178,6 +178,7 @@ exports.addDoctor = asyncHandler(async (req, res, next) => {
       timings,
       slotTimings,
       noOfDays,
+      price,
       code: doctorCode
     });
    
@@ -412,7 +413,7 @@ exports.getHospitalWithDoctors = asyncHandler(async (req, res, next) => {
 
     const doctorIds = hospital.doctors.map(doc => doc.doctorid);
 
-    const fieldsToReturn = "_id name experience study specialist hospitalid bookingsids timings";
+    const fieldsToReturn = "_id name experience study specialist hospitalid bookingsids timings price";
 
     const doctors = await Doctor.find({ _id: { $in: doctorIds } }).select(fieldsToReturn);
 
@@ -471,7 +472,7 @@ exports.getUserDetailsByBookingId = asyncHandler(async (req, res, next) => {
 
 exports.addTest = asyncHandler(async (req, res, next) => {
   try {
-    const { name, timings, slotTimings, noOfDays } = req.body;
+    const { name, timings, slotTimings, noOfDays,price } = req.body;
     const hospitalid = req.hosp.id;
     const hospital = await Hospital.findById(hospitalid);
 
@@ -487,6 +488,7 @@ exports.addTest = asyncHandler(async (req, res, next) => {
       name,
       hospitalid,
       timings,
+      price,
       slotTimings,
       noOfDays,
       code: testCode

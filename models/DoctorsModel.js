@@ -12,6 +12,17 @@ const SessionSchema = new mongoose.Schema({
     required: true
   }
 });
+const PriceSchema = new mongoose.Schema({
+  consultancyfee: {
+    type: Number,
+    required: true
+  },
+  servicefee: {
+    type: Number,
+    required: true
+  },
+  _id: false
+});
 
 const SlotSchema = new mongoose.Schema({
   time: {
@@ -57,10 +68,10 @@ const DoctorSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  // price:{
-  //   type:Number,
-  //   required:true
-  // },
+  price: {
+    type: PriceSchema,
+    required: true
+  },
   code: {
     type: String,
     unique: true,
