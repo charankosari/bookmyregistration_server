@@ -535,7 +535,7 @@ exports.getLabDetails = asyncHandler(async (req, res, next) => {
       return res.status(404).json({ message: "Hospital not found" });
     }
     const testIds = hospital.tests.map(test => test.testid);
-    const fieldsToReturn = "_id name  timings slotTimings bookingsids  ";
+    const fieldsToReturn = "_id name  timings slotTimings bookingsids price ";
     const tests = await Labs.find({ _id: { $in: testIds } }).select(fieldsToReturn);
 
     res.status(200).json({
