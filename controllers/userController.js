@@ -501,6 +501,7 @@ exports.getBookingDetails = asyncHandler(async (req, res, next) => {
         date: booking.date,
         session: booking.session,
         time: booking.time,
+        bookedOn:booking.createdAt,
       },
       doctor: {
         _id: doctor._id,
@@ -601,7 +602,6 @@ exports.getUserBookingDetails = asyncHandler(async (req, res, next) => {
       if (!hospital) {
         continue;
       }
-
       const detail = {
         booking: {
           _id: booking._id,
@@ -614,6 +614,7 @@ exports.getUserBookingDetails = asyncHandler(async (req, res, next) => {
           date: booking.date,
           session: booking.session,
           time: booking.time,
+          bookedOn:booking.createdAt,
         },
         hospital: {
           _id: hospital._id,
