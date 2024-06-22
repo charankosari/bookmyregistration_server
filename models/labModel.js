@@ -112,6 +112,7 @@ function transformBookingIds(ret) {
     } else if (bookingDate.isSame(now, 'day')) {
       const filteredMorningSlots = value.morning.filter(slot => moment(slot.time, "HH:mm").isSameOrAfter(now));
       const filteredEveningSlots = value.evening.filter(slot => moment(slot.time, "HH:mm").isSameOrAfter(now));
+      console.log(filteredMorningSlots)
       
       if (filteredMorningSlots.length > 0 || filteredEveningSlots.length > 0) {
         const formattedDate = bookingDate.format("DD-MM-YYYY");
