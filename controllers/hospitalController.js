@@ -18,19 +18,21 @@ const renflair_url='https://sms.renflair.in/V1.php?API=c850371fda6892fbfd1c5a5b4
 
 config({ path: "config/config.env" });
 // user register___________________________
+const generateOtp = () => Math.floor(1000 + Math.random() * 9000);
 exports.register = asyncHandler(async (req, res, next) => {
-  const generateOtp = () => Math.floor(1000 + Math.random() * 9000);
   try {
-    const { hospitalName, address,image, email, number,role } = req.body;
+    const { hospitalName, address, image, email, number, role } = req.body;
+
     let hosp = await Hospital.findOne({ email });
-  let hosp2 = await Hospital.findOne({ hospitalName });
-  let hosp3 = await Hospital.findOne({ number });
-  if (hosp || hosp2 ||hosp3) {
-    return next(new errorHandler("Hospital already exists", 401));
-  }
+    let hosp2 = await Hospital.findOne({ hospitalName });
+    let hosp3 = await Hospital.findOne({ number });
+
+    if (hosp || hosp2 || hosp3) {
+      return next(new errorHandler("Hospital already exists", 401));
+    }
     const otp = generateOtp();
     const ttl = 10 * 60 * 1000; // OTP valid for 10 minutes
-    otpStore.set(number, { otp, hospitalName,address, email,image,role });
+    otpStore.set(number, { otp, hospitalName, address, email, image, role });
     setTimeout(() => {
       otpStore.delete(number);
     }, ttl);
@@ -38,15 +40,15 @@ exports.register = asyncHandler(async (req, res, next) => {
     await axios.post(url);
     res.status(200).json({ message: 'OTP sent successfully', number });
   } catch (error) {
-    console.error(error);
+    console.error("Error in register:", error);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
 
-//verify register otp__________________________
+// Verify Register OTP
 exports.verifyRegisterOtp = asyncHandler(async (req, res, next) => {
   try {
-    const { otp, number } = req.body;
+    const { otp, number, hospitalName, address, email, image, role } = req.body;
     if (!otp || !number) {
       return next(new errorHandler("OTP and number are required", 400));
     }
@@ -54,15 +56,13 @@ exports.verifyRegisterOtp = asyncHandler(async (req, res, next) => {
     if (!storedData) {
       return next(new errorHandler("OTP expired or phone number not found", 400));
     }
-    const { otp: storedOtp, hospitalName,address, email,image,role } = storedData;
-
+    const { otp: storedOtp } = storedData;
     if (otp !== storedOtp) {
       return next(new errorHandler("Invalid OTP", 400));
     }
     let hosp = await Hospital.create({
-      hospitalName,address, email,number,image,role,price
+      hospitalName, address, email, number, image, role
     });
-
     otpStore.delete(number);
     sendJwt(hosp, 201, "Registered successfully", res);
   } catch (error) {

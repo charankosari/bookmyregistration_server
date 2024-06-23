@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const moment = require("moment");
 
 const SessionSchema = new mongoose.Schema({
   startTime: {
@@ -33,6 +34,7 @@ const PriceSchema = new mongoose.Schema({
   },
   _id: false
 });
+
 
 const BookingSchema = new mongoose.Schema({
   morning: {
@@ -96,34 +98,16 @@ const testSchema = new mongoose.Schema({
   toJSON: { virtuals: true, transform: (doc, ret) => transformBookingIds(ret) },
   toObject: { virtuals: true, transform: (doc, ret) => transformBookingIds(ret) }
 });
+
 function transformBookingIds(ret) {
-  const now = new Date();
+  const today = moment().startOf('day');
   const filteredBookings = {};
 
   Object.entries(ret.bookingsids).forEach(([key, value]) => {
-    const bookingDate = new Date(key);
-
-    if (bookingDate > now) {
-      const formattedDate = bookingDate.toISOString().slice(0, 10).split('-').reverse().join('-');
+    const bookingDate = moment(key, "YYYY-MM-DD");
+    if (bookingDate.isSameOrAfter(today)) {
+      const formattedDate = bookingDate.format("DD-MM-YYYY");
       filteredBookings[formattedDate] = value;
-    } else if (bookingDate.toDateString() === now.toDateString()) {
-      const nowTime = now.getHours() * 60 + now.getMinutes();
-      const filteredMorningSlots = value.morning.filter(slot => {
-        const slotTime = new Date(`1970-01-01T${slot.time}:00Z`);
-        return slotTime.getUTCHours() * 60 + slotTime.getUTCMinutes() >= nowTime;
-      });
-      const filteredEveningSlots = value.evening.filter(slot => {
-        const slotTime = new Date(`1970-01-01T${slot.time}:00Z`);
-        return slotTime.getUTCHours() * 60 + slotTime.getUTCMinutes() >= nowTime;
-      });
-
-      if (filteredMorningSlots.length > 0 || filteredEveningSlots.length > 0) {
-        const formattedDate = bookingDate.toISOString().slice(0, 10).split('-').reverse().join('-');
-        filteredBookings[formattedDate] = {
-          morning: filteredMorningSlots,
-          evening: filteredEveningSlots
-        };
-      }
     }
   });
 
