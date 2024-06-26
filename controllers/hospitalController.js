@@ -12,7 +12,9 @@ const { config } = require("dotenv");
 const fs=require("fs");
 const axios=require("axios")
 const Labs = require('../models/labModel')
-
+const aws = require('aws-sdk');
+const multer = require('multer');
+const path = require('path');
 const otpStore = new Map();
 const renflair_url='https://sms.renflair.in/V1.php?API=c850371fda6892fbfd1c5a5b457e5777'
 
@@ -118,7 +120,7 @@ exports.verifyOtp = asyncHandler(async (req, res, next) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 });
-// Random words generator
+// Random words generator 
 function getRandomLetters(name, count) {
   const letters = name.replace(/[^a-zA-Z]/g, '');
   let result = '';
@@ -585,3 +587,81 @@ exports.deleteTestById = asyncHandler(async (req, res, next) => {
   }
   res.status(200).json({ success: true, message: "Test deleted successfully" });
 });
+
+//image upload
+const uploadDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+aws.config.update({
+    secretAccessKey: process.env.ACCESS_SECRET,
+    accessKeyId: process.env.ACCESS_KEY,
+    region: process.env.REGION,
+});
+
+const BUCKET = process.env.BUCKET;
+const s3 = new aws.S3();
+
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, uploadDir);
+    },
+    filename: function (req, file, cb) {
+        cb(null, Date.now() + '-' + file.originalname);
+    }
+});
+const upload = multer({ storage: storage });
+exports.addFile = async (req, res, next) => {
+  upload.single('file')(req, res, async (err) => {
+    if (err) {
+      return res.status(500).send('File upload failed');
+    }
+    if (!req.file) {
+      return res.status(400).send('No file uploaded.');
+    }
+
+    const filePath = path.join(uploadDir, req.file.filename);
+    fs.readFile(filePath, async (err, fileContent) => {
+      if (err) {
+        console.error('Read file error:', err);
+        return res.status(500).send('Failed to read file');
+      }
+
+      const params = {
+        Bucket: BUCKET,
+        Key: req.file.filename,
+        Body: fileContent,
+        ACL: 'public-read',
+      };
+
+      s3.upload(params, async (err, data) => {
+        fs.unlink(filePath, (unlinkErr) => {
+          if (unlinkErr) {
+            console.error('Cleanup error:', unlinkErr);
+          }
+        });
+
+        if (err) {
+          console.error('Upload error:', err);
+          return res.status(500).send('Failed to upload file');
+        }
+
+        try {
+          const fileDetails = {
+            fileName: req.file.filename,
+            url: data.Location,
+            bucket: data.Bucket,
+            key: data.Key,
+            eTag: data.ETag,
+          };
+
+          return res.status(200).json(fileDetails);
+        } catch (dbErr) {
+          console.error('Database error:', dbErr);
+          return res.status(500).send('Failed to save file details');
+        }
+      });
+    });
+  });
+};
