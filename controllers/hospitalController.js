@@ -665,3 +665,68 @@ exports.addFile = async (req, res, next) => {
     });
   });
 };
+
+
+
+exports.updateProfile = async (req, res, next) => {
+  const { hospitalId } = req.hosp.id;
+  if (!hospitalId) {
+    return res.status(400).send('Hospital ID is required');
+  }
+  try {
+    const hospital = await Hospital.findById(hospitalId);
+    if (!hospital) {
+      return res.status(404).send('Hospital not found');
+    }
+    upload.single('file')(req, res, async (err) => {
+      if (err) {
+        console.error('Multer upload error:', err);
+        return res.status(500).send('File upload failed');
+      }
+      if (!req.file) {
+        return res.status(400).send('No file uploaded.');
+      }
+      const filePath = path.join(uploadDir, req.file.filename);
+      fs.readFile(filePath, async (err, fileContent) => {
+        if (err) {
+          console.error('Read file error:', err);
+          return res.status(500).send('Failed to read file');
+        }
+        const params = {
+          Bucket: BUCKET,
+          Key: req.file.filename,
+          Body: fileContent,
+          ACL: 'public-read',
+        };
+        s3.upload(params, async (err, data) => {
+          fs.unlink(filePath, (unlinkErr) => {
+            if (unlinkErr) {
+              console.error('Cleanup error:', unlinkErr);
+            }
+          });
+          if (err) {
+            console.error('S3 upload error:', err);
+            return res.status(500).send('Failed to upload file');
+          }
+          const imageUrl = data.Location;
+          try {
+            const oldImageUrl = hospital.image;
+            const oldImageFilename = oldImageUrl ? oldImageUrl.split('/').pop() : null;
+            hospital.image = imageUrl;
+            await hospital.save();
+            if (oldImageFilename) {
+              await s3.deleteObject({ Bucket: BUCKET, Key: oldImageFilename }).promise();
+            }
+            return res.status(200).json(hospital);
+          } catch (dbErr) {
+            console.error('Database error:', dbErr);
+            return res.status(500).send('Failed to update hospital image');
+          }
+        });
+      });
+    });
+  } catch (err) {
+    console.error('Database error:', err);
+    return res.status(500).send('Failed to fetch hospital');
+  }
+};
