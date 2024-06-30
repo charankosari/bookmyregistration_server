@@ -181,10 +181,14 @@ exports.userDetails = asyncHandler(async (req, res, next) => {
 
 //profile update
 exports.profileUpdate = asyncHandler(async (req, res, next) => {
-  const { name, email } = req.body;
+  const { name, email,age,weight,gender,height } = req.body;
   const user = await User.findById(req.user.id);
   user.name = name || user.name;
   user.email = email || user.email;
+  user.age = age || user.age;
+  user.weight = weight || user.weight;
+  user.gender = gender || user.gender;
+  user.height = height || user.height;
   try {
     await user.save();
     res.status(200).json({ success: true, user });

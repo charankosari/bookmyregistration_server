@@ -18,6 +18,34 @@ const userSchema = new mongoose.Schema({
     unique:true,
     validate: [validator.isEmail, "Please enter valid email"],
   },
+  age: {
+    type: Number,
+    min: [5, "Age must be a positive number"],
+    validate: {
+      validator: Number.isInteger,
+      message: "Age must be an integer",
+    },
+  },
+  gender:{
+    type:String,
+    enum:["male","female"]
+  },
+  weight: {
+    type: Number,
+    min: [1, "Weight must be a positive number"],
+    validate: {
+      validator: Number.isFinite,
+      message: "Weight must be a number",
+    },
+  },
+  weight: {
+    type: Number,
+    min: [1, "Height must be a positive number"],
+    validate: {
+      validator: Number.isFinite,
+      message: "Height must be a number",
+    },
+  },
   number:{
     type:Number,
     unique:true,
