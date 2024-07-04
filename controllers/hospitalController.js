@@ -261,9 +261,8 @@ exports.profileUpdate = asyncHandler(async (req, res, next) => {
   hosp.email = email || hosp.email;
   hosp.number = number || hosp.number;
   hosp.image = image || hosp.image;
-  console.log(name,email,number,image)
   try {
-    if (image && previousImage) {
+    if (image !== previousImage) {
       const filename = previousImage.split('/').pop();
       await s3.deleteObject({ Bucket: BUCKET, Key: filename }).promise();
     }
