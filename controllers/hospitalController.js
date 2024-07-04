@@ -238,30 +238,20 @@ exports.HospitalDetails=asyncHandler(async(req,res,next)=>{
   }
   res.status(200).send({success:true,hosp})
 })
-
 //profile update
 exports.profileUpdate = asyncHandler(async (req, res, next) => {
-  const { name, email, number,image } = req.body;
+  const { name, email, number, image } = req.body;
   const hosp = await Hospital.findById(req.hosp.id);
+  const previousImage = hosp.image; 
   hosp.name = name || hosp.name;
   hosp.email = email || hosp.email;
   hosp.number = number || hosp.number;
-  hosp.image=image || hosp.image;
-    try {
-        await s3.deleteObject({ Bucket: BUCKET, Key: filename }).promise();
-        hosp.image = user.image.filter(file => file.name !== filename);
-        await user.save();
-        res.status(200).json({message:"File deleted successfully",
-          success: true,
-        });
-    } catch (err) {
-        res.status(500).json({
-          success: false,
-          message:"Failed to delete files"
-        });
-    }
-  };
+  hosp.image = image || hosp.image;
   try {
+    if (image && previousImage) {
+      const filename = previousImage.split('/').pop();
+      await s3.deleteObject({ Bucket: BUCKET, Key: filename }).promise();
+    }
     await hosp.save();
     res.status(200).json({ success: true, hosp });
   } catch (err) {
