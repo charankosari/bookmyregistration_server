@@ -252,12 +252,7 @@ const storage = multer.diskStorage({
     }
 });
 const upload = multer({ storage: storage });
-const params = {
-  Bucket: BUCKET,
-  Key: req.file.filename,
-  Body: fileContent,
-  ACL: 'public-read',
-};
+
 exports.profileUpdate = asyncHandler(async (req, res, next) => {
   const { name, email, number, image } = req.body;
   const hosp = await Hospital.findById(req.hosp.id);
