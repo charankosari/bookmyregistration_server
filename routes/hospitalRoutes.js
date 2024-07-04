@@ -1,6 +1,6 @@
 const express=require('express')
 const router=express.Router()
-const {register, verifyRegisterOtp,updateProfile,addFile,numberUpdateHosp,sendOtp,verifyOtp,addMoreSessionsLabs,getHospitalWithDoctors,getHosptial,getUserDetailsByBookingId,addMoreSessions,addDoctor,updatePassword,getSingleDoctorByCode,HospitalDetails,profileUpdate, getAllHospitals,getAllDoctors, deleteDoctorById, addTest,} =require("../controllers/hospitalController")
+const {register, verifyRegisterOtp,updateProfile,addFile,sendOtpVerifyHosp,numberUpdateHosp,sendOtp,verifyOtp,addMoreSessionsLabs,getHospitalWithDoctors,getHosptial,getUserDetailsByBookingId,addMoreSessions,addDoctor,updatePassword,getSingleDoctorByCode,HospitalDetails,profileUpdate, getAllHospitals,getAllDoctors, deleteDoctorById, addTest,} =require("../controllers/hospitalController")
 const {isAuthorized,roleAuthorize, isAuthorizedHosp,}=require("../middleware/auth")
 
 router.route('/')
