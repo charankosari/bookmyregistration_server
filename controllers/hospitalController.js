@@ -254,9 +254,9 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 exports.profileUpdate = asyncHandler(async (req, res, next) => {
-  const { name, email, number, image } = req.body;
+  const { hospitalName, email,  image } = req.body;
   const hosp = await Hospital.findById(req.hosp.id);
-  hosp.name = name || hosp.name;
+  hosp.hospitalName = hospitalName || hosp.hospitalName;
   hosp.email = email || hosp.email;
   hosp.image = image || hosp.image;
   await hosp.save();
