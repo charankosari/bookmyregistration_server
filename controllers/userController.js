@@ -16,7 +16,7 @@ const aws = require('aws-sdk');
 const Labs = require('../models/labModel')
 const multer = require('multer');
 const path = require('path');
-const otpStore = new Map();
+const otpStoree = new Map();
 const renflair_url =
   "https://sms.renflair.in/V1.php?API=c850371fda6892fbfd1c5a5b457e5777";
 
@@ -32,9 +32,9 @@ exports.register = asyncHandler(async (req, res, next) => {
     }
     const otp = generateOtp();
     const ttl = 10 * 60 * 1000; // OTP valid for 10 minutes
-    otpStore.set(number, { otp, name, email });
+    otpStoree.set(number, { otp,  name, email });
     setTimeout(() => {
-      otpStore.delete(number);
+      otpStoree.delete(number);
     }, ttl);
     const url = `${renflair_url}&PHONE=${number}&OTP=${otp}`;
     await axios.post(url);
@@ -50,17 +50,17 @@ exports.verifyRegisterOtp = asyncHandler(async (req, res, next) => {
   try {
     const { otp, number } = req.body;
     console.log(`Received - OTP: ${otp}, number: ${number}`);
+    
     if (!otp || !number) {
       return next(new errorHandler("OTP and number are required", 400));
     }
-    const storedData = otpStore.get(number);
+    
+    const storedData = otpStoree.get(String(number));
+    console.log(otpStoree)
     if (!storedData) {
-      return next(
-        new errorHandler("OTP expired or phone number not found", 400)
-      );
+      return next(new errorHandler("OTP expired or phone number not found", 400));
     }
     const { otp: storedOtp, name, email } = storedData;
-
     if (otp !== storedOtp) {
       return next(new errorHandler("Invalid OTP", 400));
     }
@@ -69,8 +69,7 @@ exports.verifyRegisterOtp = asyncHandler(async (req, res, next) => {
       email,
       number,
     });
-
-    otpStore.delete(number);
+    otpStoree.delete(number);
     sendJwt(user, 201, "Registered successfully", res);
   } catch (error) {
     console.error("Error during OTP verification:", error);
@@ -94,9 +93,9 @@ exports.sendOtp = asyncHandler(async (req, res, next) => {
     const otp = generateOtp();
     const ttl = 10 * 60 * 1000; // OTP valid for 10 minutes
 
-    otpStore.set(user._id.toString(), otp);
+    otpStoree.set(user._id.toString(), otp);
 
-    setTimeout(() => otpStore.delete(user._id.toString()), ttl);
+    setTimeout(() => otpStoree.delete(user._id.toString()), ttl);
 
     const url = `${renflair_url}&PHONE=${number}&OTP=${otp}`;
     await axios.post(url);
@@ -124,9 +123,9 @@ exports.sendOtpVerify = asyncHandler(async (req, res, next) => {
     }
     const otp = generateOtp();
     const ttl = 10 * 60 * 1000; // OTP valid for 10 minutes
-    otpStore.set(user._id.toString(), otp);
+    otpStoree.set(user._id.toString(), otp);
 
-    setTimeout(() => otpStore.delete(user._id.toString()), ttl);
+    setTimeout(() => otpStoree.delete(user._id.toString()), ttl);
 
     const url = `${renflair_url}&PHONE=${number}&OTP=${otp}`;
     await axios.post(url);
@@ -146,8 +145,7 @@ exports.verifyOtp = asyncHandler(async (req, res, next) => {
       return next(new errorHandler("OTP and UserID are required", 400));
     }
 
-    const storedOtp = otpStore.get(userid);
-
+    const storedOtp = otpStoree.get(userid);
     if (!storedOtp) {
       return next(new errorHandler("OTP expired or user ID not found", 400));
     }
@@ -156,7 +154,7 @@ exports.verifyOtp = asyncHandler(async (req, res, next) => {
       return next(new errorHandler("Invalid OTP", 400));
     }
 
-    otpStore.delete(userid);
+    otpStoree.delete(userid);
 
     const user = await User.findById(userid);
     if (!user) {

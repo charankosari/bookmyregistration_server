@@ -3,7 +3,6 @@ const router=express.Router()
 const {register,sendOtp,verifyOtp, verifyRegisterOtp,getLabDetails,bookAppointmentLab,toggleWishlistItem,sendOtpVerify,getTests ,getUserBookingDetails,numberUpdate,getDoctorDetails,bookAppointment,getBookingDetails,getDoctor,userDetails,profileUpdate, getAllUsers,getUser,updateUserRole,deleteUser,getWishlist,wishListDoctor,RemovewishListProduct,AddCartItem,RemoveCartItem,getCartDetails,updateCartItem,deleteCart,deleteWishlist, addFile, deleteFile, getFiles, downloadFile, getFilesBinary} =require("../controllers/userController")
 const {isAuthorized,roleAuthorize,}=require("../middleware/auth")
 
-// const {FileUpload} =require('../controllers/FileUpload')
 router.route("/register").post(register)
 
 router.route("/verifyregisterotp").post(verifyRegisterOtp)

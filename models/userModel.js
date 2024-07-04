@@ -38,7 +38,7 @@ const userSchema = new mongoose.Schema({
       message: "Weight must be a number",
     },
   },
-  weight: {
+  height: {
     type: Number,
     min: [1, "Height must be a positive number"],
     validate: {
