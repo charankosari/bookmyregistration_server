@@ -236,7 +236,7 @@ exports.getUser = asyncHandler(async (req, res, next) => {
 });
 ///get single doctor by id
 exports.getDoctor = asyncHandler(async (req, res, next) => {
-  const doc = await Doctor.findById(req.params.id).select("_id name experience study specialist hospitalid bookingsids timings price");
+  const doc = await Doctor.findById(req.params.id).select("_id name  image experience study image specialist hospitalid bookingsids timings price");
   if (!doc) {
     return res.status(404).json({ success: false, message: "Doctor not found" });
   }
@@ -539,7 +539,7 @@ exports.getLabDetails = asyncHandler(async (req, res, next) => {
       return res.status(404).json({ message: "Hospital not found" });
     }
     const testIds = hospital.tests.map(test => test.testid);
-    const fieldsToReturn = "_id name  timings slotTimings bookingsids price ";
+    const fieldsToReturn = "_id name  timings slotTimings bookingsids price image";
     const tests = await Labs.find({ _id: { $in: testIds } }).select(fieldsToReturn);
 
     res.status(200).json({

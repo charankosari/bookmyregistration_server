@@ -159,7 +159,7 @@ function generateTimeSlots(timings, slotDuration) {
 // Add doctor
 exports.addDoctor = asyncHandler(async (req, res, next) => {
   try {
-    const { name, experience, study, specialist, timings, slotTimings, noOfDays,price } = req.body;
+    const { name, experience, study, specialist, timings, slotTimings, noOfDays,price,image } = req.body;
     const hospitalid = req.hosp.id;
     const hospital = await Hospital.findById(hospitalid);
 
@@ -174,6 +174,7 @@ exports.addDoctor = asyncHandler(async (req, res, next) => {
     const doctor = new Doctor({
       name,
       experience,
+      image,
       study,
       specialist,
       hospitalid,
@@ -406,7 +407,6 @@ exports.addMoreSessionsLabs = async (req, res, next) => {
 exports.getHospitalWithDoctors = asyncHandler(async (req, res, next) => {
   try {
     const hospitalId = req.hosp.id;
-
     const hospital = await Hospital.findById(hospitalId);
 
     if (!hospital) {
@@ -415,7 +415,7 @@ exports.getHospitalWithDoctors = asyncHandler(async (req, res, next) => {
 
     const doctorIds = hospital.doctors.map(doc => doc.doctorid);
 
-    const fieldsToReturn = "_id name experience study specialist hospitalid bookingsids timings price";
+    const fieldsToReturn = "_id name experience study specialist hospitalid bookingsids timings price image";
 
     const doctors = await Doctor.find({ _id: { $in: doctorIds } }).select(fieldsToReturn);
 
