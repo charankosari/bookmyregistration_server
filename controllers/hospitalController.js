@@ -256,22 +256,13 @@ const upload = multer({ storage: storage });
 exports.profileUpdate = asyncHandler(async (req, res, next) => {
   const { name, email, number, image } = req.body;
   const hosp = await Hospital.findById(req.hosp.id);
-  const previousImage = hosp.image; 
   hosp.name = name || hosp.name;
   hosp.email = email || hosp.email;
   hosp.number = number || hosp.number;
   hosp.image = image || hosp.image;
-  try {
-    if (image !== previousImage) {
-      const filename = previousImage.split('/').pop();
-      await s3.deleteObject({ Bucket: BUCKET, Key: filename }).promise();
-    }
-    console.log(hosp)
-    await hosp.save();
+  await hosp.save();
     res.status(200).json({ success: true, hosp });
-  } catch (err) {
-    return next(new errorHandler("Failed to update profile.", 500));
-  }
+
 });
 exports.getDoctorDetails=asyncHandler(async(next,req,res)=>{
   
