@@ -239,6 +239,25 @@ exports.HospitalDetails=asyncHandler(async(req,res,next)=>{
   res.status(200).send({success:true,hosp})
 })
 //profile update
+
+const BUCKET = process.env.BUCKET;
+const s3 = new aws.S3();
+
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, uploadDir);
+    },
+    filename: function (req, file, cb) {
+        cb(null, Date.now() + '-' + file.originalname);
+    }
+});
+const upload = multer({ storage: storage });
+const params = {
+  Bucket: BUCKET,
+  Key: req.file.filename,
+  Body: fileContent,
+  ACL: 'public-read',
+};
 exports.profileUpdate = asyncHandler(async (req, res, next) => {
   const { name, email, number, image } = req.body;
   const hosp = await Hospital.findById(req.hosp.id);
@@ -606,18 +625,18 @@ aws.config.update({
     region: process.env.REGION,
 });
 
-const BUCKET = process.env.BUCKET;
-const s3 = new aws.S3();
+// const BUCKET = process.env.BUCKET;
+// const s3 = new aws.S3();
 
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, uploadDir);
-    },
-    filename: function (req, file, cb) {
-        cb(null, Date.now() + '-' + file.originalname);
-    }
-});
-const upload = multer({ storage: storage });
+// const storage = multer.diskStorage({
+//     destination: function (req, file, cb) {
+//         cb(null, uploadDir);
+//     },
+//     filename: function (req, file, cb) {
+//         cb(null, Date.now() + '-' + file.originalname);
+//     }
+// });
+// const upload = multer({ storage: storage });
 exports.addFile = async (req, res, next) => {
   upload.single('file')(req, res, async (err) => {
     if (err) {
