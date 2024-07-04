@@ -258,15 +258,65 @@ exports.profileUpdate = asyncHandler(async (req, res, next) => {
   const hosp = await Hospital.findById(req.hosp.id);
   hosp.name = name || hosp.name;
   hosp.email = email || hosp.email;
-  hosp.number = number || hosp.number;
   hosp.image = image || hosp.image;
   await hosp.save();
     res.status(200).json({ success: true, hosp });
 
 });
-exports.getDoctorDetails=asyncHandler(async(next,req,res)=>{
-  
-})
+exports.sendOtpVerifyHosp = asyncHandler(async (req, res, next) => {
+  const hospid=req.hosp.id;
+  const generateOtp = () => Math.floor(1000 + Math.random() * 9000);
+  try {
+    const { number } = req.body;
+   
+
+    const hosp = await Hospital.findById( hospid);
+    if (!hosp) {
+      return next(new errorHandler("Please check your number  or Create an account", 404));
+    }
+    const otp = generateOtp();
+    const ttl = 10 * 60 * 1000; // OTP valid for 10 minutes
+    otpStore.set(hosp._id.toString(), otp);
+
+    setTimeout(() => otpStore.delete(hosp._id.toString()), ttl);
+
+    const url = `${renflair_url}&PHONE=${number}&OTP=${otp}`;
+    await axios.post(url);
+    res
+      .status(200)
+      .json({ message: "OTP sent successfully", hospid: hosp._id });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+exports.numberUpdateHosp = asyncHandler(async (req, res, next) => {
+  try {
+    const { otp, hospid, number } = req.body;
+    if (!otp || !hospid) {
+      return next(new errorHandler("OTP and UserID are required", 400));
+    }
+    const storedOtp = otpStore.get(hospid);
+    if (!storedOtp) {
+      return next(new errorHandler("OTP expired or user ID not found", 400));
+    }
+    if (otp !== storedOtp) {
+      return next(new errorHandler("Invalid OTP", 400));
+    }
+    otpStore.delete(hospid);
+    const hosp = await Hospital.findById(hospid);
+    if (!hosp) {
+      return next(new errorHandler("Hospital  not found", 404));
+    }
+    hosp.number = number || hosp.number;
+    await hosp.save();
+    res.status(200).json({ success: true, hosp });
+  } catch (error) {
+    console.error("Error during number update:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
 // get all doctors---admin
 exports.getAllDoctors=asyncHandler(async(req,res,next)=>{
   const doctors=await Doctor.find()
