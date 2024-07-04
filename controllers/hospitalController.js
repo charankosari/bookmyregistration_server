@@ -241,11 +241,12 @@ exports.HospitalDetails=asyncHandler(async(req,res,next)=>{
 
 //profile update
 exports.profileUpdate = asyncHandler(async (req, res, next) => {
-  const { name, email, number } = req.body;
+  const { name, email, number,image } = req.body;
   const hosp = await Hospital.findById(req.hosp.id);
   hosp.name = name || hosp.name;
   hosp.email = email || hosp.email;
   hosp.number = number || hosp.number;
+  hosp.image=image || hosp.image;
 
   try {
     await hosp.save();
