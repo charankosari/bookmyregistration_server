@@ -247,7 +247,20 @@ exports.profileUpdate = asyncHandler(async (req, res, next) => {
   hosp.email = email || hosp.email;
   hosp.number = number || hosp.number;
   hosp.image=image || hosp.image;
-
+    try {
+        await s3.deleteObject({ Bucket: BUCKET, Key: filename }).promise();
+        hosp.image = user.image.filter(file => file.name !== filename);
+        await user.save();
+        res.status(200).json({message:"File deleted successfully",
+          success: true,
+        });
+    } catch (err) {
+        res.status(500).json({
+          success: false,
+          message:"Failed to delete files"
+        });
+    }
+  };
   try {
     await hosp.save();
     res.status(200).json({ success: true, hosp });
