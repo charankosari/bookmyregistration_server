@@ -57,6 +57,10 @@ const DoctorSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  image:{
+    type:String,
+    required:true
+  },
   experience: {
     type: Number,
     required: true
