@@ -268,8 +268,6 @@ exports.sendOtpVerifyHosp = asyncHandler(async (req, res, next) => {
   const generateOtp = () => Math.floor(1000 + Math.random() * 9000);
   try {
     const { number } = req.body;
-   
-
     const hosp = await Hospital.findById( hospid);
     if (!hosp) {
       return next(new errorHandler("Please check your number  or Create an account", 404));
