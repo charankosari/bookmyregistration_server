@@ -288,7 +288,6 @@ exports.sendOtpVerifyHosp = asyncHandler(async (req, res, next) => {
     res.status(500).json({ message: "Internal server error" });
   }
 });
-
 exports.numberUpdateHosp = asyncHandler(async (req, res, next) => {
   try {
     const { otp, hospid, number } = req.body;
@@ -296,16 +295,12 @@ exports.numberUpdateHosp = asyncHandler(async (req, res, next) => {
       return next(new errorHandler("OTP and UserID are required", 400));
     }
     const storedOtp = otpStore.get(hospid);
-    if (!storedOtp) {
-      return next(new errorHandler("OTP expired or user ID not found", 400));
-    }
-    if (otp !== storedOtp) {
+    if (!storedOtp || otp !== storedOtp) {
       return next(new errorHandler("Invalid OTP", 400));
     }
-    otpStore.delete(hospid);
     const hosp = await Hospital.findById(hospid);
     if (!hosp) {
-      return next(new errorHandler("Hospital  not found", 404));
+      return next(new errorHandler("Hospital not found", 404));
     }
     hosp.number = number || hosp.number;
     await hosp.save();
@@ -315,6 +310,7 @@ exports.numberUpdateHosp = asyncHandler(async (req, res, next) => {
     res.status(500).json({ message: "Internal server error" });
   }
 });
+
 // get all doctors---admin
 exports.getAllDoctors=asyncHandler(async(req,res,next)=>{
   const doctors=await Doctor.find()

@@ -21,7 +21,7 @@ router.route("/adddoctor").post(isAuthorizedHosp,addDoctor)
 router.route("/addtest").post(isAuthorizedHosp,addTest)
 router.route("/profileupload").post(addFile)
 //number verify update
-router.route("/me/numberupdate").put(isAuthorized,numberUpdateHosp)
+router.route("/numberupdate").put(isAuthorizedHosp,numberUpdateHosp)
 router.route("/imageupdate").post(updateProfile)
 router.route("/hosp/doctors").get(isAuthorizedHosp,getHospitalWithDoctors)
 router.route("/getsingledoctor").post(isAuthorizedHosp,getSingleDoctorByCode)
