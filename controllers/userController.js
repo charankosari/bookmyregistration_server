@@ -566,7 +566,7 @@ exports.getDoctorDetails = asyncHandler(async (req, res, next) => {
 
     const doctorIds = hospital.doctors.map(doc => doc.doctorid);
 
-    const fieldsToReturn = "_id name experience study specialist hospitalid bookingsids timings price image ";
+    const fieldsToReturn = "_id name experience study specialist hospitalid bookingsids timings price image code";
 
     const doctors = await Doctor.find({ _id: { $in: doctorIds } }).select(fieldsToReturn);
 
