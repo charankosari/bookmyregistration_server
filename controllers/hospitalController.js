@@ -316,6 +316,11 @@ exports.getAllDoctors=asyncHandler(async(req,res,next)=>{
   const doctors=await Doctor.find()
   res.status(200).json({success:true,doctors})
 })
+exports.getSingleDoc=asyncHandler(async(req,res,next)=>{
+  const doctorid=req.body;
+  const doctor=await Doctor.findById(doctorid)
+  res.status(200).json({success:true,doctor})
+})
 
 // get single doctors---admin
 exports.getSingleDoctorByCode = asyncHandler(async (req, res, next) => {
