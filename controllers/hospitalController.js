@@ -528,7 +528,7 @@ exports.getUserDetailsByBookingId = asyncHandler(async (req, res, next) => {
 
 exports.addTest = asyncHandler(async (req, res, next) => {
   try {
-    const { name, timings, slotTimings, noOfDays,price } = req.body;
+    const { name, timings, slotTimings, noOfDays,price,image } = req.body;
     const hospitalid = req.hosp.id;
     const hospital = await Hospital.findById(hospitalid);
 
@@ -547,7 +547,8 @@ exports.addTest = asyncHandler(async (req, res, next) => {
       price,
       slotTimings,
       noOfDays,
-      code: testCode
+      code: testCode,
+      image
     });
    
     const startDate = new Date();
@@ -654,18 +655,6 @@ aws.config.update({
     region: process.env.REGION,
 });
 
-// const BUCKET = process.env.BUCKET;
-// const s3 = new aws.S3();
-
-// const storage = multer.diskStorage({
-//     destination: function (req, file, cb) {
-//         cb(null, uploadDir);
-//     },
-//     filename: function (req, file, cb) {
-//         cb(null, Date.now() + '-' + file.originalname);
-//     }
-// });
-// const upload = multer({ storage: storage });
 exports.addFile = async (req, res, next) => {
   upload.single('file')(req, res, async (err) => {
     if (err) {
@@ -784,3 +773,110 @@ exports.updateProfile = async (req, res, next) => {
     return res.status(500).send('Failed to fetch hospital');
   }
 };
+
+
+//doc edit
+exports.docUpdate = asyncHandler(async (req, res, next) => {
+  const { docid, name,  image,study,price,specialist } = req.body;
+  const doc = await Doctor.findById(docid);
+  doc.name = name || doc.name;
+  doc.image = image || doc.image;
+  doc.study = study || doc.study;
+  doc.specialist=specialist || doc.specialist
+  doc.price=price||doc.price
+  await doc.save();
+    res.status(200).json({ success: true, doc });
+});
+
+//test edit
+
+exports.testUpdate = asyncHandler(async (req, res, next) => {
+  const { name,testid,  image,price } = req.body;
+  const test = await Test.findById(testid);
+  test.name = name || test.name;
+  test.image = image || test.image;
+  test.price=price||test.price
+  await test.save();
+    res.status(200).json({ success: true, test });
+});
+
+
+//hospital bookings
+exports.getBookingDetails = asyncHandler(async (req, res, next) => {
+  try {
+    const { doctorId } = req.body;
+
+    // Find the doctor by ID
+    const doctor = await Doctor.findById(doctorId);
+    if (!doctor) {
+      return res.status(404).json({ message: "Doctor not found" });
+    }
+
+    // Extract all booking IDs from the doctor's booking IDs
+    const bookingIds = [];
+    for (const bookings of Object.values(doctor.bookingsids || {})) {
+      for (const session of ["morning", "evening"]) {
+        if (Array.isArray(bookings[session])) {
+          bookings[session].forEach(slot => {
+            if (slot.bookingId) {
+              bookingIds.push(slot.bookingId);
+            }
+          });
+        }
+      }
+    }
+
+    if (bookingIds.length === 0) {
+      return res.status(200).json({ bookings: [] });
+    }
+
+    // Fetch all bookings in a single query
+    const bookings = await Booking.find({ _id: { $in: bookingIds } });
+
+    // Extract all user IDs from the bookings
+    const userIds = bookings.map(booking => booking.userid);
+
+    if (userIds.length === 0) {
+      return res.status(200).json({ bookings: [] });
+    }
+
+    // Fetch all users in a single query
+    const users = await User.find({ _id: { $in: userIds } });
+
+    // Create a map for quick lookup of users by ID
+    const userMap = new Map(users.map(user => [user._id.toString(), user]));
+
+    // Create the booking details array
+    const bookingDetailsArray = bookings.map(booking => {
+      const user = userMap.get(booking.userid.toString());
+      return {
+        booking: {
+          _id: booking._id,
+          name: booking.name,
+          id: booking.bookingId,
+          userid: booking.userid,
+          phonenumber: booking.phonenumber,
+          email: booking.email,
+          amountpaid: booking.amountpaid,
+          date: booking.date,
+          session: booking.session,
+          time: booking.time,
+          bookedOn: booking.createdAt,
+        },
+        user: user ? {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          phonenumber: user.phonenumber
+        } : null
+      };
+    });
+
+    res.status(200).json({ bookings: bookingDetailsArray });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+//tests bookings

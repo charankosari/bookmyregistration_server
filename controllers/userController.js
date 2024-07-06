@@ -241,7 +241,7 @@ exports.getDoctor = asyncHandler(async (req, res, next) => {
   res.status(200).json({ success: true, doctor: doc });
 });
 exports.getTests = asyncHandler(async (req, res, next) => {
-  const test = await Labs.findById(req.params.id).select("_id name experience study  hospitalid bookingsids timings price");
+  const test = await Labs.findById(req.params.id).select("_id name experience study  hospitalid bookingsids timings price image");
   if (!test) {
     return res.status(404).json({ success: false, message: "Test not found" });
   }
@@ -845,12 +845,12 @@ exports.getWishlist = asyncHandler(async (req, res, next) => {
 
   // Find doctors with specific fields
   const doctorWishlistData = await Doctor.find({ _id: { $in: doctorIds } })
-    .select("name experience study specialist timings hospitalid bookingsids")
+    .select("name experience study specialist timings hospitalid bookingsids image" )
     .lean();
 
   // Find tests with specific fields
   const testWishlistData = await Labs.find({ _id: { $in: testIds } })
-    .select("name timings hospitalid bookingsids ")
+    .select("name timings hospitalid bookingsids image")
     .lean();
 
   res.status(200).json({ 

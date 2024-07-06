@@ -93,7 +93,11 @@ const testSchema = new mongoose.Schema({
     type: Map,
     of: BookingSchema,
     default: {}
-  }
+  },
+  image: {
+    type: [String],
+    _id: false
+  },
 }, {
   toJSON: { virtuals: true, transform: (doc, ret) => transformBookingIds(ret) },
   toObject: { virtuals: true, transform: (doc, ret) => transformBookingIds(ret) }
