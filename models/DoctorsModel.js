@@ -111,7 +111,13 @@ const DoctorSchema = new mongoose.Schema({
     type: Map,
     of: BookingSchema,
     default: {}
+  },
+  ids: {
+    type: [mongoose.Schema.Types.ObjectId],
+    ref: 'Booking', 
+    default: []
   }
+
 }, {
   toJSON: { virtuals: true, transform: (doc, ret) => transformBookingIds(ret) },
   toObject: { virtuals: true, transform: (doc, ret) => transformBookingIds(ret) }

@@ -1,6 +1,6 @@
 const express=require('express')
 const router=express.Router()
-const {register, verifyRegisterOtp,getSingleDoc,docUpdate,testUpdate,getBookingDetails,updateProfile,addFile,sendOtpVerifyHosp,numberUpdateHosp,sendOtp,verifyOtp,addMoreSessionsLabs,getHospitalWithDoctors,getHosptial,getUserDetailsByBookingId,addMoreSessions,addDoctor,updatePassword,getSingleDoctorByCode,HospitalDetails,profileUpdate, getAllHospitals,getAllDoctors, deleteDoctorById, addTest,} =require("../controllers/hospitalController")
+const {register, verifyRegisterOtp,getTestBookingDetails,getSingleDoc,docUpdate,testUpdate,getBookingDetails,updateProfile,addFile,sendOtpVerifyHosp,numberUpdateHosp,sendOtp,verifyOtp,addMoreSessionsLabs,getHospitalWithDoctors,getHosptial,getUserDetailsByBookingId,addMoreSessions,addDoctor,updatePassword,getSingleDoctorByCode,HospitalDetails,profileUpdate, getAllHospitals,getAllDoctors, deleteDoctorById, addTest,} =require("../controllers/hospitalController")
 const {isAuthorized,roleAuthorize, isAuthorizedHosp,}=require("../middleware/auth")
 
 router.route('/')
@@ -33,6 +33,7 @@ router.route('/doctor/booking/:bookingId').get( getUserDetailsByBookingId);
 // router.route("/addsession").post(addSession)
 router.route('/singledoc').post(getSingleDoc)
 router.route("/doc/bookingdetails").get(isAuthorizedHosp,getBookingDetails)
+router.route("/test/bookingdetails").get(isAuthorizedHosp,getTestBookingDetails)
 router.route("/admin/getalldoctors").get(getAllDoctors)
 router.route("/admin/getallhospitals").get(getAllHospitals)
 router.route("/hospital/:id").get(getHosptial)

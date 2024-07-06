@@ -371,7 +371,7 @@ exports.bookAppointment = asyncHandler(async (req, res, next) => {
       .get(dateString)
       [session].find((slot) => slot.time === booking.time);
     doctorSlot.bookingId = booking._id;
-
+    doctor.ids.push(booking._id);
     await doctor.save();
     const user = await User.findById(userId);
     user.bookings.push({ bookingid: booking._id });
@@ -462,7 +462,7 @@ exports.bookAppointmentLab = asyncHandler(async (req, res, next) => {
       .get(dateString)
       [session].find((slot) => slot.time === booking.time);
       testSlot.bookingId = booking._id;
-
+      test.ids.push(booking._id)
     await test.save();
     const user = await User.findById(userId);
     user.bookings.push({ bookingid: booking._id });
