@@ -31,7 +31,7 @@ router.route("/getsingledoctor").post(isAuthorizedHosp,getSingleDoctorByCode)
 router.route("/deletedoctor/:id").post(isAuthorizedHosp,deleteDoctorById)
 router.route('/doctor/booking/:bookingId').get( getUserDetailsByBookingId);
 // router.route("/addsession").post(addSession)
-router.route('/singledoc').post(isAuthorizedHosp,getSingleDoc)
+router.route('/singledoc').post(getSingleDoc)
 router.route("/doc/bookingdetails").get(isAuthorizedHosp,getBookingDetails)
 router.route("/admin/getalldoctors").get(getAllDoctors)
 router.route("/admin/getallhospitals").get(getAllHospitals)
