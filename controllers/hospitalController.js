@@ -819,48 +819,21 @@ exports.testUpdate = asyncHandler(async (req, res, next) => {
 exports.getBookingDetails = asyncHandler(async (req, res, next) => {
   try {
     const { doctorId } = req.body;
-
-    // Find the doctor by ID
     const doctor = await Doctor.findById(doctorId);
     if (!doctor) {
       return res.status(404).json({ message: "Doctor not found" });
     }
-
-    // Extract all booking IDs from the doctor's booking IDs
-    const bookingIds = [];
-    for (const bookings of Object.values(doctor.bookingsids || {})) {
-      for (const session of ["morning", "evening"]) {
-        if (Array.isArray(bookings[session])) {
-          bookings[session].forEach(slot => {
-            if (slot.bookingId) {
-              bookingIds.push(slot.bookingId);
-            }
-          });
-        }
-      }
-    }
-
+    const bookingIds = doctor.ids;
     if (bookingIds.length === 0) {
       return res.status(200).json({ bookings: [] });
     }
-
-    // Fetch all bookings in a single query
     const bookings = await Booking.find({ _id: { $in: bookingIds } });
-
-    // Extract all user IDs from the bookings
     const userIds = bookings.map(booking => booking.userid);
-
     if (userIds.length === 0) {
       return res.status(200).json({ bookings: [] });
     }
-
-    // Fetch all users in a single query
     const users = await User.find({ _id: { $in: userIds } });
-
-    // Create a map for quick lookup of users by ID
     const userMap = new Map(users.map(user => [user._id.toString(), user]));
-
-    // Create the booking details array
     const bookingDetailsArray = bookings.map(booking => {
       const user = userMap.get(booking.userid.toString());
       return {
@@ -892,5 +865,54 @@ exports.getBookingDetails = asyncHandler(async (req, res, next) => {
     res.status(500).json({ message: "Internal server error" });
   }
 });
-
 //tests bookings
+
+exports.getTestBookingDetails = asyncHandler(async (req, res, next) => {
+  try {
+    const { testid } = req.body;
+    const test = await Labs.findById(testid);
+    if (!test) {
+      return res.status(404).json({ message: "test not found" });
+    }
+    const bookingIds = test.ids;
+    if (bookingIds.length === 0) {
+      return res.status(200).json({ bookings: [] });
+    }
+    const bookings = await Booking.find({ _id: { $in: bookingIds } });
+    const userIds = bookings.map(booking => booking.userid);
+    if (userIds.length === 0) {
+      return res.status(200).json({ bookings: [] });
+    }
+    const users = await User.find({ _id: { $in: userIds } });
+    const userMap = new Map(users.map(user => [user._id.toString(), user]));
+    const bookingDetailsArray = bookings.map(booking => {
+      const user = userMap.get(booking.userid.toString());
+      return {
+        booking: {
+          _id: booking._id,
+          name: booking.name,
+          id: booking.bookingId,
+          userid: booking.userid,
+          phonenumber: booking.phonenumber,
+          email: booking.email,
+          amountpaid: booking.amountpaid,
+          date: booking.date,
+          session: booking.session,
+          time: booking.time,
+          bookedOn: booking.createdAt,
+        },
+        user: user ? {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          phonenumber: user.phonenumber
+        } : null
+      };
+    });
+
+    res.status(200).json({ bookings: bookingDetailsArray });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
