@@ -316,11 +316,20 @@ exports.getAllDoctors=asyncHandler(async(req,res,next)=>{
   const doctors=await Doctor.find()
   res.status(200).json({success:true,doctors})
 })
-exports.getSingleDoc=asyncHandler(async(req,res,next)=>{
-  const doctorid=req.body;
-  const doctor=await Doctor.findById(doctorid)
-  res.status(200).json({success:true,doctor})
-})
+exports.getSingleDoc = asyncHandler(async (req, res, next) => {
+  const { doctorid } = req.body;
+
+  try {
+    const doctor = await Doctor.findById(doctorid);
+
+    if (!doctor) {
+      return res.status(404).json({ success: false, message: 'Doctor not found' });
+    }
+    res.status(200).json({ success: true, doctor });
+  } catch (error) {
+    next(error);
+  }
+});
 
 // get single doctors---admin
 exports.getSingleDoctorByCode = asyncHandler(async (req, res, next) => {
