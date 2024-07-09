@@ -20,7 +20,8 @@ const PriceSchema = new mongoose.Schema({
   },
   servicefee: {
     type: Number,
-    required: true
+    required: true,
+    default:100
   },
   _id: false
 });

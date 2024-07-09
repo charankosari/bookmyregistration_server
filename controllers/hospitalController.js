@@ -227,21 +227,21 @@ exports.deleteDoctorById = asyncHandler(async (req, res, next) => {
   res.status(200).json({ success: true, message: "Doctor deleted successfully" });
 });
 //deleting a test by id
-exports.deleteDoctorById = asyncHandler(async (req, res, next) => {
-  const testId = req.params.id;
-  const hospitalId = req.hosp.id;
-  const test = await Labs.findById(testId);
-  if (!test) {
-    return res.status(404).json({ success: false, message: "Test not found" });
-  }
-  test.tests = test.tests.filter(test => test.testId.toString() !== testId);
-  await test.save();
-  const deletedTest = await Test.findByIdAndDelete(testId);
-  if (!deletedTest) {
-    return res.status(404).json({ success: false, message: "Test not found" });
-  }
-  res.status(200).json({ success: true, message: "Test deleted successfully" });
-});
+// exports.deleteTestById = asyncHandler(async (req, res, next) => {
+//   const testId = req.params.id;
+//   const hospitalId = req.hosp.id;
+//   const test = await Labs.findById(testId);
+//   if (!test) {
+//     return res.status(404).json({ success: false, message: "Test not found" });
+//   }
+//   test.tests = test.tests.filter(test => test.testId.toString() !== testId);
+//   await test.save();
+//   const deletedTest = await Test.findByIdAndDelete(testId);
+//   if (!deletedTest) {
+//     return res.status(404).json({ success: false, message: "Test not found" });
+//   }
+//   res.status(200).json({ success: true, message: "Test deleted successfully" });
+// });
 
 // my details
 exports.HospitalDetails=asyncHandler(async(req,res,next)=>{
@@ -657,6 +657,7 @@ exports.addMoreTestSessions = async (req, res, next) => {
 exports.deleteTestById = asyncHandler(async (req, res, next) => {
   const testId = req.params.id;
   const hospitalId = req.hosp.id;
+
   const hospital = await Hospital.findById(hospitalId);
   if (!hospital) {
     return res.status(404).json({ success: false, message: "Hospital not found" });
@@ -888,7 +889,7 @@ exports.getTestBookingDetails = asyncHandler(async (req, res, next) => {
       return res.status(404).json({ message: "test not found" });
     }
     const bookingIds = test.ids;
-    if (bookingIds.length === 0) {
+    if (bookingIds.length === 0) {  
       return res.status(200).json({ bookings: [] });
     }
     const bookings = await Booking.find({ _id: { $in: bookingIds } });
@@ -922,7 +923,6 @@ exports.getTestBookingDetails = asyncHandler(async (req, res, next) => {
         } : null
       };
     });
-
     res.status(200).json({ bookings: bookingDetailsArray });
   } catch (error) {
     console.error(error);
