@@ -29,7 +29,7 @@ router.route("/imageupdate").post(updateProfile)
 router.route("/hosp/doctors").get(isAuthorizedHosp,getHospitalWithDoctors)
 router.route("/getsingledoctor").post(isAuthorizedHosp,getSingleDoctorByCode)
 router.route("/deletedoctor/:id").post(isAuthorizedHosp,deleteDoctorById)
-router.route("/deletetest/:id").post(isAuthorizedHosp,deleteTestById)
+router.route("/deletetest/:id").delete(isAuthorizedHosp,deleteTestById)
 router.route('/doctor/booking/:bookingId').get( getUserDetailsByBookingId);
 // router.route("/addsession").post(addSession)
 router.route('/singledoc').post(getSingleDoc)
