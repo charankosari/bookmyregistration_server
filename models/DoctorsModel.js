@@ -20,7 +20,6 @@ const PriceSchema = new mongoose.Schema({
   },
   servicefee: {
     type: Number,
-    required: true,
     default:100
   },
   _id: false
@@ -61,10 +60,6 @@ const DoctorSchema = new mongoose.Schema({
   image:{
     type:String,
     required:true
-  },
-  experience: {
-    type: Number,
-    required: true
   },
   study: {
     type: String,
