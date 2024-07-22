@@ -201,14 +201,14 @@ exports.numberUpdate = asyncHandler(async (req, res, next) => {
     if (!otp || !userid) {
       return next(new errorHandler("OTP and UserID are required", 400));
     }
-    const storedOtp = otpStore.get(userid);
+    const storedOtp = otpStoree.get(userid);
     if (!storedOtp) {
       return next(new errorHandler("OTP expired or user ID not found", 400));
     }
     if (otp !== storedOtp) {
       return next(new errorHandler("Invalid OTP", 400));
     }
-    otpStore.delete(userid);
+    otpStoree.delete(userid);
     const user = await User.findById(userid);
     if (!user) {
       return next(new errorHandler("User not found", 404));
