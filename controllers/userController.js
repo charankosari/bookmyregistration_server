@@ -580,6 +580,44 @@ exports.getDoctorDetails = asyncHandler(async (req, res, next) => {
   }
 });
 
+//get single doctor details by id 
+exports.getDoc = asyncHandler(async (req, res, next) => {
+  try {
+    const doctorId = req.params.id;
+    const fieldsToReturn = "_id name experience study specialist hospitalid bookingsids timings price image code";
+    const doctor = await Doctor.findById(doctorId).select(fieldsToReturn);
+    if (!doctor) {
+      return res.status(404).json({ message: "Doctor not found" });
+    }
+    res.status(200).json({
+      success: true,
+      doctor: doctor,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+
+//get single lab details by id
+exports.getLab = asyncHandler(async (req, res, next) => {
+  try {
+    const labId = req.params.id;
+    const fieldsToReturn = "_id name experience study specialist hospitalid bookingsids timings price image code";
+    const lab = await Labs.findById(labId).select(fieldsToReturn);
+    if (!lab) {
+      return res.status(404).json({ message: "Lab not found" });
+    }
+    res.status(200).json({
+      success: true,
+      lab:lab,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+
 //user booking details all_________________________________________
 exports.getUserBookingDetails = asyncHandler(async (req, res, next) => {
   try {

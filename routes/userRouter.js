@@ -1,6 +1,6 @@
 const express=require('express')
 const router=express.Router()
-const {register,sendOtp,verifyOtp, verifyRegisterOtp,getLabDetails,bookAppointmentLab,toggleWishlistItem,sendOtpVerify,getTests ,getUserBookingDetails,numberUpdate,getDoctorDetails,bookAppointment,getBookingDetails,getDoctor,userDetails,profileUpdate, getAllUsers,getUser,updateUserRole,deleteUser,getWishlist,wishListDoctor,RemovewishListProduct,AddCartItem,RemoveCartItem,getCartDetails,updateCartItem,deleteCart,deleteWishlist, addFile, deleteFile, getFiles, downloadFile, getFilesBinary} =require("../controllers/userController")
+const {register,sendOtp,verifyOtp, verifyRegisterOtp,getLabDetails,getDoc,getLab,bookAppointmentLab,toggleWishlistItem,sendOtpVerify,getTests ,getUserBookingDetails,numberUpdate,getDoctorDetails,bookAppointment,getBookingDetails,getDoctor,userDetails,profileUpdate, getAllUsers,getUser,updateUserRole,deleteUser,getWishlist,wishListDoctor,RemovewishListProduct,AddCartItem,RemoveCartItem,getCartDetails,updateCartItem,deleteCart,deleteWishlist, addFile, deleteFile, getFiles, downloadFile, getFilesBinary} =require("../controllers/userController")
 const {isAuthorized,roleAuthorize,}=require("../middleware/auth")
 
 router.route("/register").post(register)
@@ -25,6 +25,12 @@ router.route("/delete/:filename").delete(isAuthorized,deleteFile)
 router.route("/download/:filename").get(isAuthorized,downloadFile)
 router.route('/downloadb').get(getFilesBinary)
 router.route("/getfiles").get(isAuthorized,getFiles)
+
+
+//get single doc
+router.route("/getsingledoc/:id").get(isAuthorized,getDoc)
+router.route("/getsinglelab/:id").get(isAuthorized,getLab)
+
 // router.route("/admin/getallusers").get(isAuthorized,roleAuthorize("admin"),getAllUsers)
 // router.route("/admin/user/:id").get(isAuthorized,roleAuthorize("admin"),getUser)
 router.route("admin/deleteuser").put(isAuthorized,roleAuthorize("admin"),updateUserRole).delete(isAuthorized,roleAuthorize("admin"),deleteUser)
