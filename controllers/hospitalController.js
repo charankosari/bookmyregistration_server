@@ -7,6 +7,7 @@ const Booking=require("../models/BookingModel")
 const User=require("../models/userModel")
 const sendJwt = require("../utils/jwttokensendHosp");
 const sendEmail=require("../utils/sendEmail")
+const moment=require('moment')
 const crypto=require("crypto")
 const { config } = require("dotenv");
 const fs=require("fs");
@@ -364,6 +365,22 @@ exports.getAllHospitals=asyncHandler(async(req,res,next)=>{
    res.status(200).json({success:true,hospitals})
 })
 
+exports.getAllHospitalsRemoved = asyncHandler(async (req, res, next) => {
+  try {
+      const hospitals = await Hospital.find();
+      const hospitalsWithDoctors = [];
+      // for (const hospital of hospitals) {
+      //     const doctors = await Promise.all(hospital.doctors.map(async (doc) => {
+      //         const doctorDetails = await Doctor.findById(doc.doctorid);
+      //     }));
+      //     hospitalsWithDoctors.push(doctors)
+      // }
+      console.log(hospitals)
+      res.status(200).json({ success: true, hospitals: hospitalsWithDoctors });
+  } catch (error) {
+      next(error);
+  }
+});
 // get single hospital---admin  
 exports.getHosptial=asyncHandler(async(req,res,next)=>{
   const hosp=await Hospital.findById(req.params.id)

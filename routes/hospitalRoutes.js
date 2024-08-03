@@ -1,6 +1,6 @@
 const express=require('express')
 const router=express.Router()
-const {register, verifyRegisterOtp,getTestBookingDetails,deleteTestById,getSingleDoc,docUpdate,testUpdate,getBookingDetails,updateProfile,addFile,sendOtpVerifyHosp,numberUpdateHosp,sendOtp,verifyOtp,addMoreSessionsLabs,getHospitalWithDoctors,getHosptial,getUserDetailsByBookingId,addMoreSessions,addDoctor,updatePassword,getSingleDoctorByCode,HospitalDetails,profileUpdate, getAllHospitals,getAllDoctors, deleteDoctorById, addTest,} =require("../controllers/hospitalController")
+const {register, verifyRegisterOtp,getAllHospitalsRemoved,getTestBookingDetails,deleteTestById,getSingleDoc,docUpdate,testUpdate,getBookingDetails,updateProfile,addFile,sendOtpVerifyHosp,numberUpdateHosp,sendOtp,verifyOtp,addMoreSessionsLabs,getHospitalWithDoctors,getHosptial,getUserDetailsByBookingId,addMoreSessions,addDoctor,updatePassword,getSingleDoctorByCode,HospitalDetails,profileUpdate, getAllHospitals,getAllDoctors, deleteDoctorById, addTest,} =require("../controllers/hospitalController")
 const {isAuthorized,roleAuthorize, isAuthorizedHosp,}=require("../middleware/auth")
 
 router.route('/')
@@ -36,9 +36,11 @@ router.route('/singledoc').post(getSingleDoc)
 router.route("/doc/bookingdetails").post(isAuthorizedHosp,getBookingDetails)
 router.route("/test/bookingdetails").post(isAuthorizedHosp,getTestBookingDetails)
 router.route("/admin/getalldoctors").get(getAllDoctors)
+router.route("/admin/getalldoctorsRem").get(getAllHospitalsRemoved)
 router.route("/admin/getallhospitals").get(getAllHospitals)
 router.route("/hospital/:id").get(getHosptial)
 router.route('/deleteDoctor/:id').delete(isAuthorizedHosp,deleteDoctorById)
+
 // router.route("/admin/user/:id").get(isAuthorized,roleAuthorize("admin"),getUser)
 // .put(isAuthorized,roleAuthorize("admin"),updateUserRole).delete(isAuthorized,roleAuthorize("admin"),deleteUser)
 module.exports=router
