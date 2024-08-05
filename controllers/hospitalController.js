@@ -364,23 +364,74 @@ exports.getAllHospitals=asyncHandler(async(req,res,next)=>{
    const hospitals=await Hospital.find()
    res.status(200).json({success:true,hospitals})
 })
-
+//get all hosps
 exports.getAllHospitalsRemoved = asyncHandler(async (req, res, next) => {
   try {
-      const hospitals = await Hospital.find();
-      const hospitalsWithDoctors = [];
-      // for (const hospital of hospitals) {
-      //     const doctors = await Promise.all(hospital.doctors.map(async (doc) => {
-      //         const doctorDetails = await Doctor.findById(doc.doctorid);
-      //     }));
-      //     hospitalsWithDoctors.push(doctors)
-      // }
-      console.log(hospitals)
-      res.status(200).json({ success: true, hospitals: hospitalsWithDoctors });
+    const hospitals = await Hospital.find();
+    const alldoctors = await Doctor.find();
+    const alltests = await Test.find();
+    const c = [];
+    const d = [];
+    const results = [];
+    for (const hospital of hospitals) {
+      const validDoctors = [];
+      const validTests = [];
+      const validCategories = new Set();
+      if (hospital.doctors && hospital.doctors.length > 0) {
+        const doctorIds = hospital.doctors.map(d => d.doctorid.toString());
+        const doctors = alldoctors.filter(doc => doctorIds.includes(doc._id.toString()));
+        for (const doctor of doctors) {
+          c.push({
+            doctor:doctor
+          });
+          if (Object.keys(doctor.bookingsids).length > 0) {
+            validDoctors.push({ doctorid: doctor._id });
+            validCategories.add(doctor.specialist);
+          }
+        }
+      }
+      if (hospital.tests && hospital.tests.length > 0) {
+        const testIds = hospital.tests.map(t => t.testid.toString());
+        const tests = alltests.filter(test => testIds.includes(test._id.toString()));
+        for (const test of tests) {
+          d.push({
+            test:test
+          });
+          if (Object.keys(test.bookingsids).length > 0) {
+            validTests.push({ testid: test._id });
+            validCategories.add(test.name);
+          }
+        }
+      }
+      if (validDoctors.length > 0 || validTests.length > 0) {
+        const resultHospital = {
+          _id: hospital._id,
+          hospitalName: hospital.hospitalName,
+          email: hospital.email,
+          number: hospital.number,
+          address: hospital.address,
+          role: hospital.role,
+          image: hospital.image,
+          doctors: validDoctors,
+          tests: validTests,
+          category: Array.from(validCategories).map(cat => ({ types: cat })),
+          __v: hospital.__v
+        };
+        results.push(resultHospital);
+      }
+    }
+    res.status(200).json({ success: true, hospitals: results,c, d });
   } catch (error) {
-      next(error);
+    console.error('Error:', error);
+    next(error);
   }
 });
+
+
+
+
+
+
 // get single hospital---admin  
 exports.getHosptial=asyncHandler(async(req,res,next)=>{
   const hosp=await Hospital.findById(req.params.id)
