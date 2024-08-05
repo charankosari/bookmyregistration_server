@@ -119,15 +119,43 @@ const testSchema = new mongoose.Schema(
   }
 );
 
+// function transformBookingIds(ret) {
+//   const today = moment().startOf("day");
+//   const filteredBookings = {};
+
+//   Object.entries(ret.bookingsids).forEach(([key, value]) => {
+//     const bookingDate = moment(key, "YYYY-MM-DD");
+//     if (bookingDate.isSameOrAfter(today)) {
+//       const formattedDate = bookingDate.format("DD-MM-YYYY");
+//       filteredBookings[formattedDate] = value;
+//     }
+//   });
+
+//   ret.bookingsids = filteredBookings;
+//   return ret;
+// }
+
+
 function transformBookingIds(ret) {
-  const today = moment().startOf("day");
+  const now = moment();
   const filteredBookings = {};
 
   Object.entries(ret.bookingsids).forEach(([key, value]) => {
     const bookingDate = moment(key, "YYYY-MM-DD");
-    if (bookingDate.isSameOrAfter(today)) {
+
+    if (bookingDate.isAfter(now, 'day')) {
       const formattedDate = bookingDate.format("DD-MM-YYYY");
       filteredBookings[formattedDate] = value;
+    } else if (bookingDate.isSame(now, 'day')) {
+      const filteredMorningSlots = value.morning.filter(slot => moment(slot.time, "HH:mm").isSameOrAfter(now, 'minute'));
+      const filteredEveningSlots = value.evening.filter(slot => moment(slot.time, "HH:mm").isSameOrAfter(now, 'minute'));
+      if (filteredMorningSlots.length > 0 || filteredEveningSlots.length > 0) {
+        const formattedDate = bookingDate.format("DD-MM-YYYY");
+        filteredBookings[formattedDate] = {
+          morning: filteredMorningSlots,
+          evening: filteredEveningSlots
+        };
+      }
     }
   });
 

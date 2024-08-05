@@ -118,7 +118,6 @@ const DoctorSchema = new mongoose.Schema({
   toJSON: { virtuals: true, transform: (doc, ret) => transformBookingIds(ret) },
   toObject: { virtuals: true, transform: (doc, ret) => transformBookingIds(ret) }
 });
-
 function transformBookingIds(ret) {
   const now = moment();
   const filteredBookings = {};
@@ -130,9 +129,8 @@ function transformBookingIds(ret) {
       const formattedDate = bookingDate.format("DD-MM-YYYY");
       filteredBookings[formattedDate] = value;
     } else if (bookingDate.isSame(now, 'day')) {
-      const filteredMorningSlots = value.morning.filter(slot => moment(slot.time, "HH:mm").isSameOrAfter(now));
-      const filteredEveningSlots = value.evening.filter(slot => moment(slot.time, "HH:mm").isSameOrAfter(now));
-      
+      const filteredMorningSlots = value.morning.filter(slot => moment(slot.time, "HH:mm").isSameOrAfter(now, 'minute'));
+      const filteredEveningSlots = value.evening.filter(slot => moment(slot.time, "HH:mm").isSameOrAfter(now, 'minute'));
       if (filteredMorningSlots.length > 0 || filteredEveningSlots.length > 0) {
         const formattedDate = bookingDate.format("DD-MM-YYYY");
         filteredBookings[formattedDate] = {
@@ -146,5 +144,6 @@ function transformBookingIds(ret) {
   ret.bookingsids = filteredBookings;
   return ret;
 }
+
 
 module.exports = mongoose.model("Doctor", DoctorSchema);
