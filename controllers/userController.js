@@ -30,8 +30,12 @@ exports.register = asyncHandler(async (req, res, next) => {
     if (user) {
       return next(new errorHandler("User already exists", 401));
     }
+    let user2 = await User.findOne({ number });
+    if (user2) {
+      return next(new errorHandler("User already exists", 401));
+    }
     const otp = generateOtp();
-    const ttl = 10 * 60 * 1000; // OTP valid for 10 minutes
+    const ttl = 10 * 60 * 1000; 
     otpStoree.set(number, { otp,  name, email });
     setTimeout(() => {
       otpStoree.delete(number);
