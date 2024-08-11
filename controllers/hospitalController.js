@@ -265,17 +265,35 @@ const storage = multer.diskStorage({
     }
 });
 const upload = multer({ storage: storage });
-
 exports.profileUpdate = asyncHandler(async (req, res, next) => {
-  const { hospitalName, email,  image } = req.body;
+  const { hospitalName, email, image, address } = req.body;
   const hosp = await Hospital.findById(req.hosp.id);
   hosp.hospitalName = hospitalName || hosp.hospitalName;
   hosp.email = email || hosp.email;
   hosp.image = image || hosp.image;
-  await hosp.save();
-    res.status(200).json({ success: true, hosp });
+  if (address) {
+    if (hosp.address && hosp.address.length > 0) {
+      const existingAddress = hosp.address[0]; 
 
+      existingAddress.hospitalAddress = address.hospitalAddress || existingAddress.hospitalAddress;
+      existingAddress.pincode = address.pincode || existingAddress.pincode;
+      existingAddress.city = address.city || existingAddress.city;
+    } else {
+      hosp.address = [{
+        hospitalAddress: address.hospitalAddress || '',
+        pincode: address.pincode || '',
+        city: address.city || '',
+        latitude: address.latitude || 0,
+        longitude: address.longitude || 0  
+      }];
+    }
+  }
+
+  await hosp.save();
+
+  res.status(200).json({ success: true, hosp });
 });
+
 exports.sendOtpVerifyHosp = asyncHandler(async (req, res, next) => {
   const hospid=req.hosp.id;
   const generateOtp = () => Math.floor(1000 + Math.random() * 9000);
