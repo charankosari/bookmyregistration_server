@@ -60,7 +60,6 @@ const HospitalSchema = new mongoose.Schema({
       hospitalAddress: {
         type: String,
         required: [true, "Please Enter Hospital Address"],
-        select: false,
       },
       pincode: {
         type: Number,

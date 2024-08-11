@@ -244,13 +244,13 @@ exports.deleteDoctorById = asyncHandler(async (req, res, next) => {
 // });
 
 // my details
-exports.HospitalDetails=asyncHandler(async(req,res,next)=>{
-  const hosp=await Hospital.findById(req.hosp.id)
-  if(!hosp){
-    return next(new errorHandler("Login to access this resource",400))
+exports.HospitalDetails = asyncHandler(async (req, res, next) => {
+  const hosp = await Hospital.findById(req.hosp.id);
+  if (!hosp) {
+    return next(new errorHandler("Login to access this resource", 400));
   }
-  res.status(200).send({success:true,hosp})
-})
+  res.status(200).send({ success: true, hosp });
+});
 //profile update
 
 const BUCKET = process.env.BUCKET;
