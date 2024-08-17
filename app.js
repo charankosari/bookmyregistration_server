@@ -14,6 +14,6 @@ app.use(express.json())
 app.use("/api/bma",user)
 app.use("/api/bma/hospital",hospital)
 app.use(errorMiddleware)
-app.get("/payment/getKey",(req,res,next)=>res.status(200).json({key:process.env.RAZORPAY_ID}))
+// app.get("/payment/getKey",(req,res,next)=>res.status(200).json({key:process.env.RAZORPAY_ID}))
 
 module.exports=app
