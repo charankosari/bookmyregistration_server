@@ -3,21 +3,22 @@ const errorHandler = require("../utils/errorHandler");
 const Hospital = require("../models/HospitalsModel");
 const Doctor = require("../models/DoctorsModel");
 const Test = require("../models/labModel");
-const Booking=require("../models/BookingModel")
-const User=require("../models/userModel")
+const Booking = require("../models/BookingModel");
+const User = require("../models/userModel");
 const sendJwt = require("../utils/jwttokensendHosp");
-const sendEmail=require("../utils/sendEmail")
-const moment=require('moment')
-const crypto=require("crypto")
+const sendEmail = require("../utils/sendEmail");
+const moment = require("moment");
+const crypto = require("crypto");
 const { config } = require("dotenv");
-const fs=require("fs");
-const axios=require("axios")
-const Labs = require('../models/labModel')
-const aws = require('aws-sdk');
-const multer = require('multer');
-const path = require('path');
+const fs = require("fs");
+const axios = require("axios");
+const Labs = require("../models/labModel");
+const aws = require("aws-sdk");
+const multer = require("multer");
+const path = require("path");
 const otpStore = new Map();
-const renflair_url='https://sms.renflair.in/V1.php?API=c850371fda6892fbfd1c5a5b457e5777'
+const renflair_url =
+  "https://sms.renflair.in/V1.php?API=c850371fda6892fbfd1c5a5b457e5777";
 
 config({ path: "config/config.env" });
 // user register___________________________
@@ -41,10 +42,10 @@ exports.register = asyncHandler(async (req, res, next) => {
     }, ttl);
     const url = `${renflair_url}&PHONE=${number}&OTP=${otp}`;
     await axios.post(url);
-    res.status(200).json({ message: 'OTP sent successfully', number });
+    res.status(200).json({ message: "OTP sent successfully", number });
   } catch (error) {
     console.error("Error in register:", error);
-    res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
@@ -57,20 +58,27 @@ exports.verifyRegisterOtp = asyncHandler(async (req, res, next) => {
     }
     const storedData = otpStore.get(number);
     if (!storedData) {
-      return next(new errorHandler("OTP expired or phone number not found", 400));
+      return next(
+        new errorHandler("OTP expired or phone number not found", 400)
+      );
     }
     const { otp: storedOtp } = storedData;
     if (otp !== storedOtp) {
       return next(new errorHandler("Invalid OTP", 400));
     }
     let hosp = await Hospital.create({
-      hospitalName, address, email, number, image, role
+      hospitalName,
+      address,
+      email,
+      number,
+      image,
+      role,
     });
     otpStore.delete(number);
     sendJwt(hosp, 201, "Registered successfully", res);
   } catch (error) {
     console.error("Error during OTP verification:", error);
-    res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 //login with otp
@@ -91,10 +99,12 @@ exports.sendOtp = asyncHandler(async (req, res, next) => {
     setTimeout(() => otpStore.delete(hosp._id.toString()), ttl);
     const url = `${renflair_url}&PHONE=${number}&OTP=${otp}`;
     await axios.post(url);
-    res.status(200).json({ message: 'OTP sent successfully', hospid: hosp._id });
+    res
+      .status(200)
+      .json({ message: "OTP sent successfully", hospid: hosp._id });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 exports.verifyOtp = asyncHandler(async (req, res, next) => {
@@ -118,17 +128,19 @@ exports.verifyOtp = asyncHandler(async (req, res, next) => {
     sendJwt(hosp, 200, "Login successful", res);
   } catch (error) {
     console.error("Error during OTP verification:", error);
-    res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ message: "Internal server error" });
   }
 });
-// Random words generator 
+// Random words generator
 function getRandomLetters(name, count) {
-  const letters = name.replace(/[^a-zA-Z]/g, '');
-  let result = '';
+  const letters = name.replace(/[^a-zA-Z]/g, "");
+  let result = "";
   const nameLength = letters.length;
 
   if (nameLength < count) {
-    throw new Error('Name does not contain enough letters to generate the code');
+    throw new Error(
+      "Name does not contain enough letters to generate the code"
+    );
   }
 
   for (let i = 0; i < count; i++) {
@@ -142,7 +154,7 @@ function generateTimeSlots(timings, slotDuration) {
 
   const slots = [];
 
-  timings.forEach(session => {
+  timings.forEach((session) => {
     let startTime = new Date(`1970-01-01T${session.startTime}:00Z`);
     const endTime = new Date(`1970-01-01T${session.endTime}:00Z`);
 
@@ -156,11 +168,19 @@ function generateTimeSlots(timings, slotDuration) {
   return slots;
 }
 
-
 // Add doctor
 exports.addDoctor = asyncHandler(async (req, res, next) => {
   try {
-    const { name, study, specialist, timings, slotTimings, noOfDays,price,image } = req.body;
+    const {
+      name,
+      study,
+      specialist,
+      timings,
+      slotTimings,
+      noOfDays,
+      price,
+      image,
+    } = req.body;
     const hospitalid = req.hosp.id;
     const hospital = await Hospital.findById(hospitalid);
 
@@ -182,23 +202,24 @@ exports.addDoctor = asyncHandler(async (req, res, next) => {
       slotTimings,
       noOfDays,
       price,
-      code: doctorCode
+      code: doctorCode,
     });
-   
+
     const startDate = new Date();
     for (let i = 0; i < noOfDays; i++) {
       const currentDate = new Date(startDate);
       currentDate.setDate(startDate.getDate() + i);
-      const dateStr = currentDate.toISOString().split('T')[0];
+      const dateStr = currentDate.toISOString().split("T")[0];
 
-   
       const morningSlots = generateTimeSlots(timings.morning, slotTimings);
       const eveningSlots = generateTimeSlots(timings.evening, slotTimings);
-      doctor.bookingsids.set(dateStr, { morning: morningSlots, evening: eveningSlots });
-    }  
-    if (!hospital.category.find(cat => cat.types === specialist)) {
+      doctor.bookingsids.set(dateStr, {
+        morning: morningSlots,
+        evening: eveningSlots,
+      });
+    }
+    if (!hospital.category.find((cat) => cat.types === specialist)) {
       hospital.category.push({ types: specialist });
-
     }
     await hospital.save();
     const savedDoctor = await doctor.save();
@@ -216,15 +237,23 @@ exports.deleteDoctorById = asyncHandler(async (req, res, next) => {
   const hospitalId = req.hosp.id;
   const hospital = await Hospital.findById(hospitalId);
   if (!hospital) {
-    return res.status(404).json({ success: false, message: "Hospital not found" });
+    return res
+      .status(404)
+      .json({ success: false, message: "Hospital not found" });
   }
-  hospital.doctors = hospital.doctors.filter(doctor => doctor.doctorid.toString() !== doctorId);
+  hospital.doctors = hospital.doctors.filter(
+    (doctor) => doctor.doctorid.toString() !== doctorId
+  );
   await hospital.save();
   const deletedDoctor = await Doctor.findByIdAndDelete(doctorId);
   if (!deletedDoctor) {
-    return res.status(404).json({ success: false, message: "Doctor not found" });
+    return res
+      .status(404)
+      .json({ success: false, message: "Doctor not found" });
   }
-  res.status(200).json({ success: true, message: "Doctor deleted successfully" });
+  res
+    .status(200)
+    .json({ success: true, message: "Doctor deleted successfully" });
 });
 //deleting a test by id
 // exports.deleteTestById = asyncHandler(async (req, res, next) => {
@@ -257,12 +286,12 @@ const BUCKET = process.env.BUCKET;
 const s3 = new aws.S3();
 
 const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, uploadDir);
-    },
-    filename: function (req, file, cb) {
-        cb(null, Date.now() + '-' + file.originalname);
-    }
+  destination: function (req, file, cb) {
+    cb(null, uploadDir);
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + "-" + file.originalname);
+  },
 });
 const upload = multer({ storage: storage });
 exports.profileUpdate = asyncHandler(async (req, res, next) => {
@@ -273,19 +302,22 @@ exports.profileUpdate = asyncHandler(async (req, res, next) => {
   hosp.image = image || hosp.image;
   if (address) {
     if (hosp.address && hosp.address.length > 0) {
-      const existingAddress = hosp.address[0]; 
+      const existingAddress = hosp.address[0];
 
-      existingAddress.hospitalAddress = address.hospitalAddress || existingAddress.hospitalAddress;
+      existingAddress.hospitalAddress =
+        address.hospitalAddress || existingAddress.hospitalAddress;
       existingAddress.pincode = address.pincode || existingAddress.pincode;
       existingAddress.city = address.city || existingAddress.city;
     } else {
-      hosp.address = [{
-        hospitalAddress: address.hospitalAddress || '',
-        pincode: address.pincode || '',
-        city: address.city || '',
-        latitude: address.latitude || 0,
-        longitude: address.longitude || 0  
-      }];
+      hosp.address = [
+        {
+          hospitalAddress: address.hospitalAddress || "",
+          pincode: address.pincode || "",
+          city: address.city || "",
+          latitude: address.latitude || 0,
+          longitude: address.longitude || 0,
+        },
+      ];
     }
   }
 
@@ -295,13 +327,15 @@ exports.profileUpdate = asyncHandler(async (req, res, next) => {
 });
 
 exports.sendOtpVerifyHosp = asyncHandler(async (req, res, next) => {
-  const hospid=req.hosp.id;
+  const hospid = req.hosp.id;
   const generateOtp = () => Math.floor(1000 + Math.random() * 9000);
   try {
     const { number } = req.body;
-    const hosp = await Hospital.findById( hospid);
+    const hosp = await Hospital.findById(hospid);
     if (!hosp) {
-      return next(new errorHandler("Please check your number  or Create an account", 404));
+      return next(
+        new errorHandler("Please check your number  or Create an account", 404)
+      );
     }
     const otp = generateOtp();
     const ttl = 10 * 60 * 1000; // OTP valid for 10 minutes
@@ -343,10 +377,10 @@ exports.numberUpdateHosp = asyncHandler(async (req, res, next) => {
 });
 
 // get all doctors---admin
-exports.getAllDoctors=asyncHandler(async(req,res,next)=>{
-  const doctors=await Doctor.find()
-  res.status(200).json({success:true,doctors})
-})
+exports.getAllDoctors = asyncHandler(async (req, res, next) => {
+  const doctors = await Doctor.find();
+  res.status(200).json({ success: true, doctors });
+});
 exports.getSingleDoc = asyncHandler(async (req, res, next) => {
   const { doctorid } = req.body;
 
@@ -354,7 +388,9 @@ exports.getSingleDoc = asyncHandler(async (req, res, next) => {
     const doctor = await Doctor.findById(doctorid);
 
     if (!doctor) {
-      return res.status(404).json({ success: false, message: 'Doctor not found' });
+      return res
+        .status(404)
+        .json({ success: false, message: "Doctor not found" });
     }
     res.status(200).json({ success: true, doctor });
   } catch (error) {
@@ -368,20 +404,24 @@ exports.getSingleDoctorByCode = asyncHandler(async (req, res, next) => {
   const hospitalId = req.hosp.id;
   const hospital = await Hospital.findById(hospitalId);
   if (!hospital) {
-    return res.status(404).json({ success: false, message: "Hospital not found" });
+    return res
+      .status(404)
+      .json({ success: false, message: "Hospital not found" });
   }
   const doctor = await Doctor.findOne({ code: doctorCode });
   if (!doctor) {
-    return res.status(404).json({ success: false, message: "Doctor not found" });
+    return res
+      .status(404)
+      .json({ success: false, message: "Doctor not found" });
   }
   res.status(200).json({ success: true, data: doctor });
 });
 
 // get all hospitals---admin
-exports.getAllHospitals=asyncHandler(async(req,res,next)=>{
-   const hospitals=await Hospital.find()
-   res.status(200).json({success:true,hospitals})
-})
+exports.getAllHospitals = asyncHandler(async (req, res, next) => {
+  const hospitals = await Hospital.find();
+  res.status(200).json({ success: true, hospitals });
+});
 //get all hosps
 exports.getAllHospitalsRemoved = asyncHandler(async (req, res, next) => {
   try {
@@ -396,11 +436,13 @@ exports.getAllHospitalsRemoved = asyncHandler(async (req, res, next) => {
       const validTests = [];
       const validCategories = new Set();
       if (hospital.doctors && hospital.doctors.length > 0) {
-        const doctorIds = hospital.doctors.map(d => d.doctorid.toString());
-        const doctors = alldoctors.filter(doc => doctorIds.includes(doc._id.toString()));
+        const doctorIds = hospital.doctors.map((d) => d.doctorid.toString());
+        const doctors = alldoctors.filter((doc) =>
+          doctorIds.includes(doc._id.toString())
+        );
         for (const doctor of doctors) {
           c.push({
-            doctor:doctor
+            doctor: doctor,
           });
           if (Object.keys(doctor.bookingsids).length > 0) {
             validDoctors.push({ doctorid: doctor._id });
@@ -409,11 +451,13 @@ exports.getAllHospitalsRemoved = asyncHandler(async (req, res, next) => {
         }
       }
       if (hospital.tests && hospital.tests.length > 0) {
-        const testIds = hospital.tests.map(t => t.testid.toString());
-        const tests = alltests.filter(test => testIds.includes(test._id.toString()));
+        const testIds = hospital.tests.map((t) => t.testid.toString());
+        const tests = alltests.filter((test) =>
+          testIds.includes(test._id.toString())
+        );
         for (const test of tests) {
           d.push({
-            test:test
+            test: test,
           });
           if (Object.keys(test.bookingsids).length > 0) {
             validTests.push({ testid: test._id });
@@ -432,33 +476,26 @@ exports.getAllHospitalsRemoved = asyncHandler(async (req, res, next) => {
           image: hospital.image,
           doctors: validDoctors,
           tests: validTests,
-          category: Array.from(validCategories).map(cat => ({ types: cat })),
-          __v: hospital.__v
+          category: Array.from(validCategories).map((cat) => ({ types: cat })),
+          __v: hospital.__v,
         };
         results.push(resultHospital);
       }
     }
-    res.status(200).json({ success: true, hospitals: results,c, d });
+    res.status(200).json({ success: true, hospitals: results, c, d });
   } catch (error) {
-    console.error('Error:', error);
+    console.error("Error:", error);
     next(error);
   }
 });
 
-
-
-
-
-
-// get single hospital---admin  
-exports.getHosptial=asyncHandler(async(req,res,next)=>{
-  const hosp=await Hospital.findById(req.params.id)
-  res.status(200).json({success:true,hosp})
-})
-
+// get single hospital---admin
+exports.getHosptial = asyncHandler(async (req, res, next) => {
+  const hosp = await Hospital.findById(req.params.id);
+  res.status(200).json({ success: true, hosp });
+});
 
 //add more sessions_____________________
-
 
 const generateTimeSlotss = (startTime, endTime, slotDuration) => {
   const slots = [];
@@ -473,26 +510,33 @@ const generateTimeSlotss = (startTime, endTime, slotDuration) => {
   return slots;
 };
 
-
 exports.addMoreSessions = async (req, res, next) => {
   try {
-    const { doctorId,date, noOfDays, slotTimings, morning, evening } = req.body;
-    
+    const { doctorId, date, noOfDays, slotTimings, morning, evening } =
+      req.body;
 
     const doctor = await Doctor.findById(doctorId);
 
     if (!doctor) {
-      return res.status(404).json({ message: 'Doctor not found' });
+      return res.status(404).json({ message: "Doctor not found" });
     }
 
     const startDate = new Date(date);
     for (let i = 0; i < noOfDays; i++) {
       const currentDate = new Date(startDate);
       currentDate.setDate(startDate.getDate() + i);
-      const dateStr = currentDate.toISOString().split('T')[0];
+      const dateStr = currentDate.toISOString().split("T")[0];
 
-      const morningSlots = generateTimeSlotss(morning.startTime, morning.endTime, slotTimings);
-      const eveningSlots = generateTimeSlotss(evening.startTime, evening.endTime, slotTimings);
+      const morningSlots = generateTimeSlotss(
+        morning.startTime,
+        morning.endTime,
+        slotTimings
+      );
+      const eveningSlots = generateTimeSlotss(
+        evening.startTime,
+        evening.endTime,
+        slotTimings
+      );
 
       if (!doctor.bookingsids.has(dateStr)) {
         doctor.bookingsids.set(dateStr, { morning: [], evening: [] });
@@ -500,14 +544,22 @@ exports.addMoreSessions = async (req, res, next) => {
 
       const daySchedule = doctor.bookingsids.get(dateStr);
 
-      morningSlots.forEach(slot => {
-        if (!daySchedule.morning.some(existingSlot => existingSlot.time === slot.time)) {
+      morningSlots.forEach((slot) => {
+        if (
+          !daySchedule.morning.some(
+            (existingSlot) => existingSlot.time === slot.time
+          )
+        ) {
           daySchedule.morning.push(slot);
         }
       });
 
-      eveningSlots.forEach(slot => {
-        if (!daySchedule.evening.some(existingSlot => existingSlot.time === slot.time)) {
+      eveningSlots.forEach((slot) => {
+        if (
+          !daySchedule.evening.some(
+            (existingSlot) => existingSlot.time === slot.time
+          )
+        ) {
           daySchedule.evening.push(slot);
         }
       });
@@ -515,32 +567,39 @@ exports.addMoreSessions = async (req, res, next) => {
 
     await doctor.save();
 
-    res.status(201).json({ message: 'Sessions added successfully', doctor });
+    res.status(201).json({ message: "Sessions added successfully", doctor });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 //for tests
 exports.addMoreSessionsLabs = async (req, res, next) => {
   try {
-    const { testId,date, noOfDays, slotTimings, morning, evening } = req.body;
-    
+    const { testId, date, noOfDays, slotTimings, morning, evening } = req.body;
 
     const test = await Labs.findById(testId);
 
     if (!test) {
-      return res.status(404).json({ message: 'Test not found' });
+      return res.status(404).json({ message: "Test not found" });
     }
 
     const startDate = new Date(date);
     for (let i = 0; i < noOfDays; i++) {
       const currentDate = new Date(startDate);
       currentDate.setDate(startDate.getDate() + i);
-      const dateStr = currentDate.toISOString().split('T')[0];
+      const dateStr = currentDate.toISOString().split("T")[0];
 
-      const morningSlots = generateTimeSlotss(morning.startTime, morning.endTime, slotTimings);
-      const eveningSlots = generateTimeSlotss(evening.startTime, evening.endTime, slotTimings);
+      const morningSlots = generateTimeSlotss(
+        morning.startTime,
+        morning.endTime,
+        slotTimings
+      );
+      const eveningSlots = generateTimeSlotss(
+        evening.startTime,
+        evening.endTime,
+        slotTimings
+      );
 
       if (!test.bookingsids.has(dateStr)) {
         test.bookingsids.set(dateStr, { morning: [], evening: [] });
@@ -548,14 +607,22 @@ exports.addMoreSessionsLabs = async (req, res, next) => {
 
       const daySchedule = test.bookingsids.get(dateStr);
 
-      morningSlots.forEach(slot => {
-        if (!daySchedule.morning.some(existingSlot => existingSlot.time === slot.time)) {
+      morningSlots.forEach((slot) => {
+        if (
+          !daySchedule.morning.some(
+            (existingSlot) => existingSlot.time === slot.time
+          )
+        ) {
           daySchedule.morning.push(slot);
         }
       });
 
-      eveningSlots.forEach(slot => {
-        if (!daySchedule.evening.some(existingSlot => existingSlot.time === slot.time)) {
+      eveningSlots.forEach((slot) => {
+        if (
+          !daySchedule.evening.some(
+            (existingSlot) => existingSlot.time === slot.time
+          )
+        ) {
           daySchedule.evening.push(slot);
         }
       });
@@ -563,10 +630,10 @@ exports.addMoreSessionsLabs = async (req, res, next) => {
 
     await test.save();
 
-    res.status(201).json({ message: 'Sessions added successfully', test });
+    res.status(201).json({ message: "Sessions added successfully", test });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 // doctors detailssss
@@ -579,18 +646,21 @@ exports.getHospitalWithDoctors = asyncHandler(async (req, res, next) => {
       return res.status(404).json({ message: "Hospital not found" });
     }
 
-    const doctorIds = hospital.doctors.map(doc => doc.doctorid);
+    const doctorIds = hospital.doctors.map((doc) => doc.doctorid);
 
-    const fieldsToReturn = "_id name experience study specialist hospitalid bookingsids timings price image";
+    const fieldsToReturn =
+      "_id name experience study specialist hospitalid bookingsids timings price image";
 
-    const doctors = await Doctor.find({ _id: { $in: doctorIds } }).select(fieldsToReturn);
+    const doctors = await Doctor.find({ _id: { $in: doctorIds } }).select(
+      fieldsToReturn
+    );
 
     res.status(200).json({
       success: true,
       hospital: {
         ...hospital._doc,
-        doctors: doctors
-      }
+        doctors: doctors,
+      },
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -603,11 +673,11 @@ exports.getUserDetailsByBookingId = asyncHandler(async (req, res, next) => {
     const booking = await Booking.findById(bookingId);
     const user = await User.findById(booking.userid);
     if (!booking) {
-      return res.status(404).json({ message: 'Booking not found' });
+      return res.status(404).json({ message: "Booking not found" });
     }
     console.log(booking);
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: "User not found" });
     }
     const bookingDetails = {
       booking: {
@@ -631,16 +701,15 @@ exports.getUserDetailsByBookingId = asyncHandler(async (req, res, next) => {
     res.status(200).json(bookingDetails);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ message: "Internal server error" });
   }
 });
-
 
 //adding a test
 
 exports.addTest = asyncHandler(async (req, res, next) => {
   try {
-    const { name, timings, slotTimings, noOfDays,price,image } = req.body;
+    const { name, timings, slotTimings, noOfDays, price, image } = req.body;
     const hospitalid = req.hosp.id;
     const hospital = await Hospital.findById(hospitalid);
 
@@ -660,19 +729,22 @@ exports.addTest = asyncHandler(async (req, res, next) => {
       slotTimings,
       noOfDays,
       code: testCode,
-      image
+      image,
     });
-   
+
     const startDate = new Date();
     for (let i = 0; i < noOfDays; i++) {
       const currentDate = new Date(startDate);
       currentDate.setDate(startDate.getDate() + i);
-      const dateStr = currentDate.toISOString().split('T')[0];
+      const dateStr = currentDate.toISOString().split("T")[0];
       const morningSlots = generateTimeSlots(timings.morning, slotTimings);
       const eveningSlots = generateTimeSlots(timings.evening, slotTimings);
-      test.bookingsids.set(dateStr, { morning: morningSlots, evening: eveningSlots });
-    }  
-    if (!hospital.category.find(cat => cat.types === name)) {
+      test.bookingsids.set(dateStr, {
+        morning: morningSlots,
+        evening: eveningSlots,
+      });
+    }
+    if (!hospital.category.find((cat) => cat.types === name)) {
       hospital.category.push({ types: name });
     }
     await hospital.save();
@@ -688,26 +760,32 @@ exports.addTest = asyncHandler(async (req, res, next) => {
 
 //add slots for test
 
-
 exports.addMoreTestSessions = async (req, res, next) => {
   try {
-    const { testId,date, noOfDays, slotTimings, morning, evening } = req.body;
-    
+    const { testId, date, noOfDays, slotTimings, morning, evening } = req.body;
 
     const test = await Test.findById(testId);
 
     if (!test) {
-      return res.status(404).json({ message: 'test not found' });
+      return res.status(404).json({ message: "test not found" });
     }
 
     const startDate = new Date(date);
     for (let i = 0; i < noOfDays; i++) {
       const currentDate = new Date(startDate);
       currentDate.setDate(startDate.getDate() + i);
-      const dateStr = currentDate.toISOString().split('T')[0];
+      const dateStr = currentDate.toISOString().split("T")[0];
 
-      const morningSlots = generateTimeSlotss(morning.startTime, morning.endTime, slotTimings);
-      const eveningSlots = generateTimeSlotss(evening.startTime, evening.endTime, slotTimings);
+      const morningSlots = generateTimeSlotss(
+        morning.startTime,
+        morning.endTime,
+        slotTimings
+      );
+      const eveningSlots = generateTimeSlotss(
+        evening.startTime,
+        evening.endTime,
+        slotTimings
+      );
 
       if (!test.bookingsids.has(dateStr)) {
         test.bookingsids.set(dateStr, { morning: [], evening: [] });
@@ -715,14 +793,22 @@ exports.addMoreTestSessions = async (req, res, next) => {
 
       const daySchedule = test.bookingsids.get(dateStr);
 
-      morningSlots.forEach(slot => {
-        if (!daySchedule.morning.some(existingSlot => existingSlot.time === slot.time)) {
+      morningSlots.forEach((slot) => {
+        if (
+          !daySchedule.morning.some(
+            (existingSlot) => existingSlot.time === slot.time
+          )
+        ) {
           daySchedule.morning.push(slot);
         }
       });
 
-      eveningSlots.forEach(slot => {
-        if (!daySchedule.evening.some(existingSlot => existingSlot.time === slot.time)) {
+      eveningSlots.forEach((slot) => {
+        if (
+          !daySchedule.evening.some(
+            (existingSlot) => existingSlot.time === slot.time
+          )
+        ) {
           daySchedule.evening.push(slot);
         }
       });
@@ -730,10 +816,10 @@ exports.addMoreTestSessions = async (req, res, next) => {
 
     await test.save();
 
-    res.status(201).json({ message: 'Sessions added successfully', test });
+    res.status(201).json({ message: "Sessions added successfully", test });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -744,9 +830,13 @@ exports.deleteTestById = asyncHandler(async (req, res, next) => {
   const hospitalId = req.hosp.id;
   const hospital = await Hospital.findById(hospitalId);
   if (!hospital) {
-    return res.status(404).json({ success: false, message: "Hospital not found" });
+    return res
+      .status(404)
+      .json({ success: false, message: "Hospital not found" });
   }
-  hospital.tests = hospital.tests.filter(test => test.testid.toString() !== testId);
+  hospital.tests = hospital.tests.filter(
+    (test) => test.testid.toString() !== testId
+  );
   await hospital.save();
   const deletedTest = await Test.findByIdAndDelete(testId);
   if (!deletedTest) {
@@ -756,50 +846,49 @@ exports.deleteTestById = asyncHandler(async (req, res, next) => {
 });
 
 //image upload
-const uploadDir = path.join(__dirname, 'uploads');
+const uploadDir = path.join(__dirname, "uploads");
 if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
+  fs.mkdirSync(uploadDir, { recursive: true });
 }
 
 aws.config.update({
-    secretAccessKey: process.env.ACCESS_SECRET,
-    accessKeyId: process.env.ACCESS_KEY,
-    region: process.env.REGION,
+  secretAccessKey: process.env.ACCESS_SECRET,
+  accessKeyId: process.env.ACCESS_KEY,
+  region: process.env.REGION,
 });
 
 exports.addFile = async (req, res, next) => {
-  upload.single('file')(req, res, async (err) => {
+  upload.single("file")(req, res, async (err) => {
     if (err) {
-      return res.status(500).send('File upload failed');
+      return res.status(500).send("File upload failed");
     }
     if (!req.file) {
-      return res.status(400).send('No file uploaded.');
+      return res.status(400).send("No file uploaded.");
     }
 
     const filePath = path.join(uploadDir, req.file.filename);
     fs.readFile(filePath, async (err, fileContent) => {
       if (err) {
-        console.error('Read file error:', err);
-        return res.status(500).send('Failed to read file');
+        console.error("Read file error:", err);
+        return res.status(500).send("Failed to read file");
       }
 
       const params = {
         Bucket: BUCKET,
         Key: req.file.filename,
         Body: fileContent,
-        ACL: 'public-read',
       };
 
       s3.upload(params, async (err, data) => {
         fs.unlink(filePath, (unlinkErr) => {
           if (unlinkErr) {
-            console.error('Cleanup error:', unlinkErr);
+            console.error("Cleanup error:", unlinkErr);
           }
         });
 
         if (err) {
-          console.error('Upload error:', err);
-          return res.status(500).send('Failed to upload file');
+          console.error("Upload error:", err);
+          return res.status(500).send("Failed to upload file");
         }
 
         try {
@@ -813,105 +902,104 @@ exports.addFile = async (req, res, next) => {
 
           return res.status(200).json(fileDetails);
         } catch (dbErr) {
-          console.error('Database error:', dbErr);
-          return res.status(500).send('Failed to save file details');
+          console.error("Database error:", dbErr);
+          return res.status(500).send("Failed to save file details");
         }
       });
     });
   });
 };
 
-
-
 exports.updateProfile = async (req, res, next) => {
   const { hospitalId } = req.hosp.id;
   if (!hospitalId) {
-    return res.status(400).send('Hospital ID is required');
+    return res.status(400).send("Hospital ID is required");
   }
   try {
     const hospital = await Hospital.findById(hospitalId);
     if (!hospital) {
-      return res.status(404).send('Hospital not found');
+      return res.status(404).send("Hospital not found");
     }
-    upload.single('file')(req, res, async (err) => {
+    upload.single("file")(req, res, async (err) => {
       if (err) {
-        console.error('Multer upload error:', err);
-        return res.status(500).send('File upload failed');
+        console.error("Multer upload error:", err);
+        return res.status(500).send("File upload failed");
       }
       if (!req.file) {
-        return res.status(400).send('No file uploaded.');
+        return res.status(400).send("No file uploaded.");
       }
       const filePath = path.join(uploadDir, req.file.filename);
       fs.readFile(filePath, async (err, fileContent) => {
         if (err) {
-          console.error('Read file error:', err);
-          return res.status(500).send('Failed to read file');
+          console.error("Read file error:", err);
+          return res.status(500).send("Failed to read file");
         }
         const params = {
           Bucket: BUCKET,
           Key: req.file.filename,
           Body: fileContent,
-          ACL: 'public-read',
         };
         s3.upload(params, async (err, data) => {
           fs.unlink(filePath, (unlinkErr) => {
             if (unlinkErr) {
-              console.error('Cleanup error:', unlinkErr);
+              console.error("Cleanup error:", unlinkErr);
             }
           });
           if (err) {
-            console.error('S3 upload error:', err);
-            return res.status(500).send('Failed to upload file');
+            console.error("S3 upload error:", err);
+            return res.status(500).send("Failed to upload file");
           }
           const imageUrl = data.Location;
           try {
             const oldImageUrl = hospital.image;
-            const oldImageFilename = oldImageUrl ? oldImageUrl.split('/').pop() : null;
+            const oldImageFilename = oldImageUrl
+              ? oldImageUrl.split("/").pop()
+              : null;
             hospital.image = imageUrl;
             await hospital.save();
             if (oldImageFilename) {
-              await s3.deleteObject({ Bucket: BUCKET, Key: oldImageFilename }).promise();
+              await s3
+                .deleteObject({ Bucket: BUCKET, Key: oldImageFilename })
+                .promise();
             }
             return res.status(200).json(hospital);
           } catch (dbErr) {
-            console.error('Database error:', dbErr);
-            return res.status(500).send('Failed to update hospital image');
+            console.error("Database error:", dbErr);
+            return res.status(500).send("Failed to update hospital image");
           }
         });
       });
     });
   } catch (err) {
-    console.error('Database error:', err);
-    return res.status(500).send('Failed to fetch hospital');
+    console.error("Database error:", err);
+    return res.status(500).send("Failed to fetch hospital");
   }
 };
 
-
 //doc edit
 exports.docUpdate = asyncHandler(async (req, res, next) => {
-  const { docid, name,  image,study,price,specialist } = req.body;
+  const { docid, name, image, study, price, specialist } = req.body;
   const doc = await Doctor.findById(docid);
   doc.name = name || doc.name;
   doc.image = image || doc.image;
   doc.study = study || doc.study;
-  doc.specialist=specialist || doc.specialist
-  doc.price=price||doc.price
+  doc.specialist = specialist || doc.specialist;
+  doc.price = price || doc.price;
   await doc.save();
-    res.status(200).json({ success: true, doc });
+  res.status(200).json({ success: true, doc });
 });
 
 //test edit
 
 exports.testUpdate = asyncHandler(async (req, res, next) => {
-  const { name,testid,  image,price } = req.body;
+  const { name, testid, image, price } = req.body;
   const test = await Test.findById(testid);
   test.name = name || test.name;
   test.image = image || test.image;
-  test.price=price||test.price
+  test.price = price || test.price;
   await test.save();
-    res.status(200).json({ success: true, test });
+  res.status(200).json({ success: true, test });
 });
-
 
 //hospital bookings
 exports.getBookingDetails = asyncHandler(async (req, res, next) => {
@@ -926,13 +1014,13 @@ exports.getBookingDetails = asyncHandler(async (req, res, next) => {
       return res.status(200).json({ bookings: [] });
     }
     const bookings = await Booking.find({ _id: { $in: bookingIds } });
-    const userIds = bookings.map(booking => booking.userid);
+    const userIds = bookings.map((booking) => booking.userid);
     if (userIds.length === 0) {
       return res.status(200).json({ bookings: [] });
     }
     const users = await User.find({ _id: { $in: userIds } });
-    const userMap = new Map(users.map(user => [user._id.toString(), user]));
-    const bookingDetailsArray = bookings.map(booking => {
+    const userMap = new Map(users.map((user) => [user._id.toString(), user]));
+    const bookingDetailsArray = bookings.map((booking) => {
       const user = userMap.get(booking.userid.toString());
       return {
         booking: {
@@ -948,12 +1036,14 @@ exports.getBookingDetails = asyncHandler(async (req, res, next) => {
           time: booking.time,
           bookedOn: booking.createdAt,
         },
-        user: user ? {
-          _id: user._id,
-          name: user.name,
-          email: user.email,
-          phonenumber: user.number
-        } : null
+        user: user
+          ? {
+              _id: user._id,
+              name: user.name,
+              email: user.email,
+              phonenumber: user.number,
+            }
+          : null,
       };
     });
 
@@ -973,17 +1063,17 @@ exports.getTestBookingDetails = asyncHandler(async (req, res, next) => {
       return res.status(404).json({ message: "test not found" });
     }
     const bookingIds = test.ids;
-    if (bookingIds.length === 0) {  
+    if (bookingIds.length === 0) {
       return res.status(200).json({ bookings: [] });
     }
     const bookings = await Booking.find({ _id: { $in: bookingIds } });
-    const userIds = bookings.map(booking => booking.userid);
+    const userIds = bookings.map((booking) => booking.userid);
     if (userIds.length === 0) {
       return res.status(200).json({ bookings: [] });
     }
     const users = await User.find({ _id: { $in: userIds } });
-    const userMap = new Map(users.map(user => [user._id.toString(), user]));
-    const bookingDetailsArray = bookings.map(booking => {
+    const userMap = new Map(users.map((user) => [user._id.toString(), user]));
+    const bookingDetailsArray = bookings.map((booking) => {
       const user = userMap.get(booking.userid.toString());
       return {
         booking: {
@@ -999,12 +1089,14 @@ exports.getTestBookingDetails = asyncHandler(async (req, res, next) => {
           time: booking.time,
           bookedOn: booking.createdAt,
         },
-        user: user ? {
-          _id: user._id,
-          name: user.name,
-          email: user.email,
-          phonenumber: user.phonenumber
-        } : null
+        user: user
+          ? {
+              _id: user._id,
+              name: user.name,
+              email: user.email,
+              phonenumber: user.phonenumber,
+            }
+          : null,
       };
     });
     res.status(200).json({ bookings: bookingDetailsArray });

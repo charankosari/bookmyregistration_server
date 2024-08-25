@@ -12,10 +12,10 @@ const sendEmail = require("../utils/sendEmail");
 const { config } = require("dotenv");
 const crypto = require("crypto");
 const fs = require("fs");
-const aws = require('aws-sdk');
-const Labs = require('../models/labModel')
-const multer = require('multer');
-const path = require('path');
+const aws = require("aws-sdk");
+const Labs = require("../models/labModel");
+const multer = require("multer");
+const path = require("path");
 const otpStoree = new Map();
 const renflair_url =
   "https://sms.renflair.in/V1.php?API=c850371fda6892fbfd1c5a5b457e5777";
@@ -35,8 +35,8 @@ exports.register = asyncHandler(async (req, res, next) => {
       return next(new errorHandler("User already exists", 401));
     }
     const otp = generateOtp();
-    const ttl = 10 * 60 * 1000; 
-    otpStoree.set(number, { otp,  name, email });
+    const ttl = 10 * 60 * 1000;
+    otpStoree.set(number, { otp, name, email });
     setTimeout(() => {
       otpStoree.delete(number);
     }, ttl);
@@ -54,15 +54,17 @@ exports.verifyRegisterOtp = asyncHandler(async (req, res, next) => {
   try {
     const { otp, number } = req.body;
     console.log(`Received - OTP: ${otp}, number: ${number}`);
-    
+
     if (!otp || !number) {
       return next(new errorHandler("OTP and number are required", 400));
     }
-    
+
     const storedData = otpStoree.get(String(number));
-    console.log(otpStoree)
+    console.log(otpStoree);
     if (!storedData) {
-      return next(new errorHandler("OTP expired or phone number not found", 400));
+      return next(
+        new errorHandler("OTP expired or phone number not found", 400)
+      );
     }
     const { otp: storedOtp, name, email } = storedData;
     if (otp !== storedOtp) {
@@ -91,7 +93,9 @@ exports.sendOtp = asyncHandler(async (req, res, next) => {
 
     const user = await User.findOne({ number });
     if (!user) {
-      return next(new errorHandler("Please check your number  or Create an account", 404));
+      return next(
+        new errorHandler("Please check your number  or Create an account", 404)
+      );
     }
 
     const otp = generateOtp();
@@ -119,25 +123,30 @@ exports.sendOtpVerify = asyncHandler(async (req, res, next) => {
     const { number } = req.body;
     const user = await User.findById(userid);
     if (!user) {
-      return res.status(404).json({ message: "Please check your number or create an account" });
+      return res
+        .status(404)
+        .json({ message: "Please check your number or create an account" });
     }
     const existingUser = await User.findOne({ number });
     if (existingUser && existingUser._id.toString() !== userid) {
-      return res.status(400).json({ message: "A user with this number already exists" });
+      return res
+        .status(400)
+        .json({ message: "A user with this number already exists" });
     }
     const otp = generateOtp();
-    const ttl = 10 * 60 * 1000; 
+    const ttl = 10 * 60 * 1000;
     otpStoree.set(user._id.toString(), otp);
     setTimeout(() => otpStoree.delete(user._id.toString()), ttl);
     const url = `${renflair_url}&PHONE=${number}&OTP=${otp}`;
     await axios.post(url);
-    res.status(200).json({ message: "OTP sent successfully", userid: user._id });
+    res
+      .status(200)
+      .json({ message: "OTP sent successfully", userid: user._id });
   } catch (error) {
     console.error("Error sending OTP:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 });
-
 
 exports.verifyOtp = asyncHandler(async (req, res, next) => {
   try {
@@ -181,7 +190,7 @@ exports.userDetails = asyncHandler(async (req, res, next) => {
 
 //profile update
 exports.profileUpdate = asyncHandler(async (req, res, next) => {
-  const { name, email,age,weight,gender,height } = req.body;
+  const { name, email, age, weight, gender, height } = req.body;
   const user = await User.findById(req.user.id);
   user.name = name || user.name;
   user.email = email || user.email;
@@ -196,7 +205,7 @@ exports.profileUpdate = asyncHandler(async (req, res, next) => {
     return next(new errorHandler("Failed to update profile.", 500));
   }
 });
-// number update 
+// number update
 exports.numberUpdate = asyncHandler(async (req, res, next) => {
   try {
     const { otp, userid, number } = req.body;
@@ -236,14 +245,20 @@ exports.getUser = asyncHandler(async (req, res, next) => {
 });
 ///get single doctor by id
 exports.getDoctor = asyncHandler(async (req, res, next) => {
-  const doc = await Doctor.findById(req.params.id).select("_id name  image experience study image specialist hospitalid bookingsids timings price");
+  const doc = await Doctor.findById(req.params.id).select(
+    "_id name  image experience study image specialist hospitalid bookingsids timings price"
+  );
   if (!doc) {
-    return res.status(404).json({ success: false, message: "Doctor not found" });
+    return res
+      .status(404)
+      .json({ success: false, message: "Doctor not found" });
   }
   res.status(200).json({ success: true, doctor: doc });
 });
 exports.getTests = asyncHandler(async (req, res, next) => {
-  const test = await Labs.findById(req.params.id).select("_id name experience study  hospitalid bookingsids timings price image");
+  const test = await Labs.findById(req.params.id).select(
+    "_id name experience study  hospitalid bookingsids timings price image"
+  );
   if (!test) {
     return res.status(404).json({ success: false, message: "Test not found" });
   }
@@ -280,7 +295,7 @@ exports.deleteUser = asyncHandler(async (req, res, next) => {
   res.status(200).json({ success: true, message: "user deleted successfully" });
 });
 
-//find available slots 
+//find available slots
 const findAvailableSlot = async (doctorId, date, session, time) => {
   const doctor = await Doctor.findById(doctorId);
 
@@ -432,7 +447,7 @@ exports.bookAppointmentLab = asyncHandler(async (req, res, next) => {
       phonenumber,
       email,
       amountpaid,
-      testid:testId,
+      testid: testId,
       hospitalid: hospitalId,
       date: new Date(date),
       session,
@@ -463,8 +478,8 @@ exports.bookAppointmentLab = asyncHandler(async (req, res, next) => {
     const testSlot = test.bookingsids
       .get(dateString)
       [session].find((slot) => slot.time === booking.time);
-      testSlot.bookingId = booking._id;
-      test.ids.push(booking._id)
+    testSlot.bookingId = booking._id;
+    test.ids.push(booking._id);
     await test.save();
     const user = await User.findById(userId);
     user.bookings.push({ bookingid: booking._id });
@@ -497,7 +512,7 @@ exports.getBookingDetails = asyncHandler(async (req, res, next) => {
       booking: {
         _id: booking._id,
         name: booking.name,
-        id:booking.bookingId,
+        id: booking.bookingId,
         userid: booking.userid,
         phonenumber: booking.phonenumber,
         email: booking.email,
@@ -505,7 +520,7 @@ exports.getBookingDetails = asyncHandler(async (req, res, next) => {
         date: booking.date,
         session: booking.session,
         time: booking.time,
-        bookedOn:booking.createdAt,
+        bookedOn: booking.createdAt,
       },
       doctor: {
         _id: doctor._id,
@@ -538,22 +553,24 @@ exports.getLabDetails = asyncHandler(async (req, res, next) => {
     if (!hospital) {
       return res.status(404).json({ message: "Hospital not found" });
     }
-    const testIds = hospital.tests.map(test => test.testid);
-    const fieldsToReturn = "_id name  timings slotTimings bookingsids price image";
-    const tests = await Labs.find({ _id: { $in: testIds } }).select(fieldsToReturn);
+    const testIds = hospital.tests.map((test) => test.testid);
+    const fieldsToReturn =
+      "_id name  timings slotTimings bookingsids price image";
+    const tests = await Labs.find({ _id: { $in: testIds } }).select(
+      fieldsToReturn
+    );
 
     res.status(200).json({
       success: true,
       hospital: {
         ...hospital._doc,
-        tests: tests
-      }
+        tests: tests,
+      },
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
-
 
 //get doctor details all
 exports.getDoctorDetails = asyncHandler(async (req, res, next) => {
@@ -566,29 +583,33 @@ exports.getDoctorDetails = asyncHandler(async (req, res, next) => {
       return res.status(404).json({ message: "Hospital not found" });
     }
 
-    const doctorIds = hospital.doctors.map(doc => doc.doctorid);
+    const doctorIds = hospital.doctors.map((doc) => doc.doctorid);
 
-    const fieldsToReturn = "_id name experience study specialist hospitalid bookingsids timings price image code";
+    const fieldsToReturn =
+      "_id name experience study specialist hospitalid bookingsids timings price image code";
 
-    const doctors = await Doctor.find({ _id: { $in: doctorIds } }).select(fieldsToReturn);
+    const doctors = await Doctor.find({ _id: { $in: doctorIds } }).select(
+      fieldsToReturn
+    );
 
     res.status(200).json({
       success: true,
       hospital: {
         ...hospital._doc,
-        doctors: doctors
-      }
+        doctors: doctors,
+      },
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
 
-//get single doctor details by id 
+//get single doctor details by id
 exports.getDoc = asyncHandler(async (req, res, next) => {
   try {
     const doctorId = req.params.id;
-    const fieldsToReturn = "_id name experience study specialist hospitalid bookingsids timings price image code";
+    const fieldsToReturn =
+      "_id name experience study specialist hospitalid bookingsids timings price image code";
     const doctor = await Doctor.findById(doctorId).select(fieldsToReturn);
     if (!doctor) {
       return res.status(404).json({ message: "Doctor not found" });
@@ -602,25 +623,24 @@ exports.getDoc = asyncHandler(async (req, res, next) => {
   }
 });
 
-
 //get single lab details by id
 exports.getLab = asyncHandler(async (req, res, next) => {
   try {
     const labId = req.params.id;
-    const fieldsToReturn = "_id name experience study specialist hospitalid bookingsids timings price image code";
+    const fieldsToReturn =
+      "_id name experience study specialist hospitalid bookingsids timings price image code";
     const lab = await Labs.findById(labId).select(fieldsToReturn);
     if (!lab) {
       return res.status(404).json({ message: "Lab not found" });
     }
     res.status(200).json({
       success: true,
-      lab:lab,
+      lab: lab,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
-
 
 //user booking details all_________________________________________
 exports.getUserBookingDetails = asyncHandler(async (req, res, next) => {
@@ -656,7 +676,7 @@ exports.getUserBookingDetails = asyncHandler(async (req, res, next) => {
           date: booking.date,
           session: booking.session,
           time: booking.time,
-          bookedOn:booking.createdAt,
+          bookedOn: booking.createdAt,
         },
         hospital: {
           _id: hospital._id,
@@ -700,140 +720,139 @@ exports.getUserBookingDetails = asyncHandler(async (req, res, next) => {
   }
 });
 
-
 //uploading,getting,deletingfile,downloading a file to s3 bucket
-const uploadDir = path.join(__dirname, 'uploads');
+const uploadDir = path.join(__dirname, "uploads");
 if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
+  fs.mkdirSync(uploadDir, { recursive: true });
 }
 
 aws.config.update({
-    secretAccessKey: process.env.ACCESS_SECRET,
-    accessKeyId: process.env.ACCESS_KEY,
-    region: process.env.REGION,
+  secretAccessKey: process.env.ACCESS_SECRET,
+  accessKeyId: process.env.ACCESS_KEY,
+  region: process.env.REGION,
 });
 
 const BUCKET = process.env.BUCKET;
 const s3 = new aws.S3();
 
 const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, uploadDir);
-    },
-    filename: function (req, file, cb) {
-        cb(null, Date.now() + '-' + file.originalname);
-    }
+  destination: function (req, file, cb) {
+    cb(null, uploadDir);
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + "-" + file.originalname);
+  },
 });
 const upload = multer({ storage: storage });
 exports.addFile = async (req, res, next) => {
-  upload.single('file')(req, res, async (err) => {
+  upload.single("file")(req, res, async (err) => {
+    if (err) {
+      return res.status(500).send("File upload failed");
+    }
+    if (!req.file) {
+      return res.status(400).send("No file uploaded.");
+    }
+    const filePath = path.join(uploadDir, req.file.filename);
+    fs.readFile(filePath, async (err, fileContent) => {
       if (err) {
-          return res.status(500).send('File upload failed');
+        console.error("Read file error:", err);
+        return res.status(500).send("Failed to read file");
       }
-      if (!req.file) {
-          return res.status(400).send('No file uploaded.');
-      }
-      const filePath = path.join(uploadDir, req.file.filename);
-      fs.readFile(filePath, async (err, fileContent) => {
-          if (err) {
-              console.error('Read file error:', err);
-              return res.status(500).send('Failed to read file');
-          }
-          const params = {
-              Bucket: BUCKET,
-              Key: req.file.filename,
-              Body: fileContent,
-              ACL: 'public-read'
-          };
+      const params = {
+        Bucket: BUCKET,
+        Key: req.file.filename,
+        Body: fileContent,
+        // ACL: "public-read",
+      };
 
-          s3.upload(params, async (err, data) => {
-              fs.unlink(filePath, (unlinkErr) => {
-                  if (unlinkErr) {
-                      console.error('Cleanup error:', unlinkErr);
-                  }
-              });
-              if (err) {
-                  console.error('Upload error:', err);
-                  return res.status(500).send('Failed to upload file');
-              }
-              try {
-                  const user = await User.findById(req.user.id);
-                  if (!user) {
-                      return res.status(404).send('User not found');
-                  }
-                  user.addFile(req.file.filename, data.Location);
-                  await user.save();
-                  res.status(200).json({message:"File uploaded and saved Successfully",
-                    success: true,
-                    location: data.Location,
-                  });
-              } catch (dbErr) {
-                  console.error('Database error:', dbErr);
-                  res.status(500).json({
-                    success: false,
-                    message:'Exceeded the limit to upload files,please delete earlier files to upload.'
-                  });
-              }
+      s3.upload(params, async (err, data) => {
+        fs.unlink(filePath, (unlinkErr) => {
+          if (unlinkErr) {
+            console.error("Cleanup error:", unlinkErr);
+          }
+        });
+        if (err) {
+          console.error("Upload error:", err);
+          return res.status(500).send("Failed to upload file");
+        }
+        try {
+          const user = await User.findById(req.user.id);
+          if (!user) {
+            return res.status(404).send("User not found");
+          }
+          user.addFile(req.file.filename, data.Location);
+          await user.save();
+          res.status(200).json({
+            message: "File uploaded and saved Successfully",
+            success: true,
+            location: data.Location,
           });
+        } catch (dbErr) {
+          console.error("Database error:", dbErr);
+          res.status(500).json({
+            success: false,
+            message:
+              "Exceeded the limit to upload files,please delete earlier files to upload.",
+          });
+        }
       });
+    });
   });
 };
 
 exports.deleteFile = async (req, res, next) => {
   const filename = req.params.filename;
-  const userId = req.user.id; 
+  const userId = req.user.id;
   try {
-      await s3.deleteObject({ Bucket: BUCKET, Key: filename }).promise();
-      const user = await User.findById(userId);
-      if (!user) {
-          return res.status(404).send('User not found');
-      }
-      user.files = user.files.filter(file => file.name !== filename);
-      await user.save();
-      res.status(200).json({message:"File deleted successfully",
-        success: true,
-      });
+    await s3.deleteObject({ Bucket: BUCKET, Key: filename }).promise();
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).send("User not found");
+    }
+    user.files = user.files.filter((file) => file.name !== filename);
+    await user.save();
+    res
+      .status(200)
+      .json({ message: "File deleted successfully", success: true });
   } catch (err) {
-      res.status(500).json({
-        success: false,
-        message:"Failed to delete files"
-      });
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete files",
+    });
   }
 };
 exports.getFiles = async (req, res, next) => {
   const userId = req.user.id;
   try {
-      const user = await User.findById(userId).select('files'); 
-      if (!user) {
-          return res.status(404).send('User not found');
-      }
-      res.status(200).json({
-        success: true,
-        files:user ,
-      });
+    const user = await User.findById(userId).select("files");
+    if (!user) {
+      return res.status(404).send("User not found");
+    }
+    res.status(200).json({
+      success: true,
+      files: user,
+    });
   } catch (err) {
-      console.error('Get files error:', err);
-      res.status(500).json({
-        success: false,
-        message:"Failed to get files"
-      });
+    console.error("Get files error:", err);
+    res.status(500).json({
+      success: false,
+      message: "Failed to get files",
+    });
   }
 };
 
-
-
-//wishlist labs tests 
+//wishlist labs tests
 
 exports.toggleWishlistItem = asyncHandler(async (req, res, next) => {
   const { type } = req.body; // `type` should be 'Doctor' or 'Test'
   const userId = req.user.id;
-  const id =req.params.id;
+  const id = req.params.id;
 
-  console.log('ItemType:', type);
-  console.log('ItemId:', id);
-  console.log('userId:', userId);
+  console.log("ItemType:", type);
+  console.log("ItemId:", id);
+  console.log("userId:", userId);
 
-  if (!['doctor', 'test'].includes(type)) {
+  if (!["doctor", "test"].includes(type)) {
     return res.status(400).json({ success: false, message: "Invalid type" });
   }
 
@@ -843,16 +862,18 @@ exports.toggleWishlistItem = asyncHandler(async (req, res, next) => {
   }
 
   let wishList = user.wishList || [];
-  console.log('Initial wishlist:', wishList);
+  console.log("Initial wishlist:", wishList);
 
   const itemExist = wishList.find(
     (item) => item[type] && item[type].toString() === id
   );
 
-  console.log('itemExist:', itemExist);
+  console.log("itemExist:", itemExist);
 
   if (itemExist) {
-    wishList = wishList.filter((item) => !(item[type] && item[type].toString() === id));
+    wishList = wishList.filter(
+      (item) => !(item[type] && item[type].toString() === id)
+    );
     user.wishList = wishList;
     await user.save({ validateBeforeSave: false });
     return res.status(200).json({
@@ -867,9 +888,11 @@ exports.toggleWishlistItem = asyncHandler(async (req, res, next) => {
   user.wishList = wishList;
   await user.save({ validateBeforeSave: false });
 
-  console.log('Updated wishlist:', wishList);
+  console.log("Updated wishlist:", wishList);
 
-  return res.status(200).json({ success: true, message: `${type} wishlisted successfully` });
+  return res
+    .status(200)
+    .json({ success: true, message: `${type} wishlisted successfully` });
 });
 
 // Get all wishlist details
@@ -880,12 +903,18 @@ exports.getWishlist = asyncHandler(async (req, res, next) => {
     return res.status(404).json({ success: false, message: "User not found" });
   }
 
-  const doctorIds = user.wishList.filter(item => item.doctor).map(item => item.doctor);
-  const testIds = user.wishList.filter(item => item.test).map(item => item.test);
+  const doctorIds = user.wishList
+    .filter((item) => item.doctor)
+    .map((item) => item.doctor);
+  const testIds = user.wishList
+    .filter((item) => item.test)
+    .map((item) => item.test);
 
   // Find doctors with specific fields
   const doctorWishlistData = await Doctor.find({ _id: { $in: doctorIds } })
-    .select("name experience study specialist timings hospitalid bookingsids image" )
+    .select(
+      "name experience study specialist timings hospitalid bookingsids image"
+    )
     .lean();
 
   // Find tests with specific fields
@@ -893,13 +922,13 @@ exports.getWishlist = asyncHandler(async (req, res, next) => {
     .select("name timings hospitalid bookingsids image")
     .lean();
 
-  res.status(200).json({ 
-    message: "Wishlist Data", 
-    success: true, 
+  res.status(200).json({
+    message: "Wishlist Data",
+    success: true,
     data: {
       doctors: doctorWishlistData,
-      tests: testWishlistData
-    }
+      tests: testWishlistData,
+    },
   });
 });
 
@@ -909,51 +938,53 @@ exports.deleteWishlist = asyncHandler(async (req, res, next) => {
   const user = await User.findById(userId);
   user.wishList = [];
   await user.save({ validateBeforeSave: false });
-  res.status(200).json({ success: true, message: "Wishlist is empty successfully" });
+  res
+    .status(200)
+    .json({ success: true, message: "Wishlist is empty successfully" });
 });
-
 
 exports.downloadFile = asyncHandler(async (req, res, next) => {
   const filename = req.params.filename;
   console.log(`Downloading file: ${filename}`); // Logging filename
   try {
-      let fileInfo = await s3.getObject({ Bucket: BUCKET, Key: filename }).promise();
-      console.log('File info retrieved:', fileInfo); 
+    let fileInfo = await s3
+      .getObject({ Bucket: BUCKET, Key: filename })
+      .promise();
+    console.log("File info retrieved:", fileInfo);
 
-      const fileLocation = s3.getSignedUrl('getObject', {
-          Bucket: BUCKET,
-          Key: filename,
-          Expires: 10000
-      });
-      console.log('Generated signed URL:', fileLocation); 
+    const fileLocation = s3.getSignedUrl("getObject", {
+      Bucket: BUCKET,
+      Key: filename,
+      Expires: 10000,
+    });
+    console.log("Generated signed URL:", fileLocation);
 
-      res.json({
-          Location: fileLocation
-      });
+    res.json({
+      Location: fileLocation,
+    });
   } catch (err) {
-      console.error('Download error:', err);
-      res.status(500).send('Failed to download file');
+    console.error("Download error:", err);
+    res.status(500).send("Failed to download file");
   }
 });
 
-
 exports.getFilesBinary = asyncHandler(async (req, res, next) => {
   const url = req.query.url;
-  
+
   if (!url) {
-    return res.status(400).json({ error: 'URL parameter is required' });
+    return res.status(400).json({ error: "URL parameter is required" });
   }
 
   try {
-    const response = await axios.get(url, { responseType: 'arraybuffer' });
+    const response = await axios.get(url, { responseType: "arraybuffer" });
 
-    const blobData = Buffer.from(response.data, 'binary'); // Convert to Buffer
+    const blobData = Buffer.from(response.data, "binary"); // Convert to Buffer
 
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', 'inline; filename="downloaded.pdf"');
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", 'inline; filename="downloaded.pdf"');
     res.send(blobData);
   } catch (error) {
-    console.error('Error fetching or serving PDF:', error);
-    res.status(500).json({ error: 'Failed to fetch or serve PDF' });
+    console.error("Error fetching or serving PDF:", error);
+    res.status(500).json({ error: "Failed to fetch or serve PDF" });
   }
 });
