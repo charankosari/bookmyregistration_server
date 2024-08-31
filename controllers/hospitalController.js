@@ -18,7 +18,7 @@ const multer = require("multer");
 const path = require("path");
 const otpStore = new Map();
 const renflair_url =
-  "https://sms.renflair.in/V1.php?API=c850371fda6892fbfd1c5a5b457e5777";
+  "https://sms.renflair.in/V1.php?API=fc9b003bb003a298c2ad0d05e4342bdc";
 
 config({ path: "config/config.env" });
 // user register___________________________
